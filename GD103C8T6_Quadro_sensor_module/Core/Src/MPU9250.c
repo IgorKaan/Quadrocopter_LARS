@@ -218,10 +218,10 @@ uint8_t MPU9250_Init()
 	writeRegister(GYRO_CONFIG, GYRO_FS_SEL_500DPS);
 
 	// setting bandwidth to 184Hz as default
-	writeRegister(ACCEL_CONFIG2, DLPF_184);
+	writeRegister(ACCEL_CONFIG2, DLPF_10);
 
 	// setting gyro bandwidth to 184Hz
-	writeRegister(CONFIG, DLPF_184);
+	writeRegister(CONFIG, DLPF_10);
 
 	// setting the sample rate divider to 0 as default
 	writeRegister(SMPDIV, 0x00);

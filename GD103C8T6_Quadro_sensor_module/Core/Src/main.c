@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "can.h"
 #include "spi.h"
 #include "gpio.h"
@@ -60,60 +61,14 @@ const uint32_t headerIdYaw = 0x13;
 const uint32_t headerIdAccel = 0x14;
 const uint32_t headerIdGyro = 0x15;
 
-uint32_t tick;
-uint32_t ok;
-// variable RFID
-unsigned long number = 0;
-uint8_t can_data[8] = {0,};
-
-float gyroX;
-float gyroY;
-float gyroZ;
-float accelX;
-float accelY;
-float accelZ;
-float gyroX_filtered;
-float gyroY_filtered;
-float gyroZ_filtered;
-float accelX_filtered;
-float accelY_filtered;
-float accelZ_filtered;
-float accelX_summ;
-float accelY_summ;
-float accelZ_summ;
-float accelX_average;
-float accelY_average;
-float accelZ_average;
-float gyroX_summ;
-float gyroY_summ;
-float gyroZ_summ;
-float gyroX_average;
-float gyroY_average;
-float gyroZ_average;
-
-float roll = 0.0, pitch = 0.0, yaw = 0.0;
-
-uint8_t acc_data[8] = {0,};
-
-uint8_t gyro_data[8] = {0,};
-
-extern uint8_t _buffer[21];
-
-extern uint16_t ii, packet_count, fifo_count;
-//uint8_t buffer[12];
-
-int32_t gyro_bias[3]  = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
-int32_t accel_bias_reg[3] = {0, 0, 0};
-
-uint32_t count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 uint8_t MPU9250_Init();
 void MPU9250_calibrate();
-void MPU9250_GetData(int16_t* AccData, int16_t* MagData, int16_t* GyroData);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -212,6 +167,14 @@ int main(void)
   HAL_Delay(500);
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -219,66 +182,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	int16_t AccData[3], GyroData[3], MagData[3];
-	//for (int i = 0; i < 10; ++i) {
-	  MPU9250_GetData(AccData, GyroData, MagData);
-	  accelX_summ += accelX_filtered;
-	  accelY_summ += accelY_filtered;
-	  accelZ_summ += accelZ_filtered;
-	  gyroX_summ += gyroX_filtered;
-	  gyroY_summ += gyroY_filtered;
-	  gyroZ_summ += gyroZ_filtered;
-	  //HAL_Delay(1);
-	//}
-	accelX_average = accelX_summ / 10;
-	accelY_average = accelY_summ / 10;
-	accelZ_average = accelZ_summ / 10;
-	gyroX_average = gyroX_summ / 10;
-	gyroY_average = gyroY_summ / 10;
-	gyroZ_average = gyroZ_summ / 10;
-	accelX_summ = 0;
-	accelY_summ = 0;
-	accelZ_summ = 0;
-	gyroX_summ = 0;
-	gyroY_summ = 0;
-	gyroZ_summ = 0;
-
-	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, gyroZ_average);
-	eulerAngles(q_est, &roll, &pitch, &yaw);
-//	can_data[0] = _buffer[0];
-//	can_data[1] = _buffer[1];
-
-	memcpy(can_data, &_buffer[8], 6);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderGyro, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	HAL_Delay(3);
-	memcpy(can_data, &_buffer[0], 6);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderAccel, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	HAL_Delay(3);
-	memcpy(can_data, &roll, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	HAL_Delay(3);
-	memcpy(can_data, &pitch, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderPitch, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	HAL_Delay(3);
-	memcpy(can_data, &yaw, 4);
-//	can_data[0] = packet_count;
-//	can_data[1] = 0;
-//	can_data[2] = 0;
-//	can_data[3] = 0;
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	HAL_Delay(3);
-	count = HAL_GetTick();
   }
+
   /* USER CODE END 3 */
 }
 
@@ -304,6 +209,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -322,6 +228,27 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM4 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM4) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -354,4 +281,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
