@@ -105,7 +105,7 @@ void MPU_SPI_Read(uint8_t *p_buffer, uint8_t ReadAddr, uint16_t NumByteToRead)
 	uint8_t data = ReadAddr | READWRITE_CMD;
 	HAL_SPI_Transmit(&MPU9250_SPI, &data, 1, HAL_MAX_DELAY);
 	if (HAL_SPI_Receive(&MPU9250_SPI, p_buffer, NumByteToRead, HAL_MAX_DELAY) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+		//HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
 
 	}
@@ -218,10 +218,10 @@ uint8_t MPU9250_Init()
 	writeRegister(GYRO_CONFIG, GYRO_FS_SEL_500DPS);
 
 	// setting bandwidth to 184Hz as default
-	writeRegister(ACCEL_CONFIG2, DLPF_10);
+	writeRegister(ACCEL_CONFIG2, DLPF_184);
 
 	// setting gyro bandwidth to 184Hz
-	writeRegister(CONFIG, DLPF_10);
+	writeRegister(CONFIG, DLPF_184);
 
 	// setting the sample rate divider to 0 as default
 	writeRegister(SMPDIV, 0x00);

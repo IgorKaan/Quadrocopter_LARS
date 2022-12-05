@@ -82,7 +82,7 @@ float gyroX_average;
 float gyroY_average;
 float gyroZ_average;
 
-float roll = 0.0, pitch = 0.0, yaw = 0.0;
+float roll = 0.0, pitch = 0.0, yaw = 0.0, yaw_corr = 0.0;
 
 uint8_t acc_data[8] = {0,};
 
@@ -197,7 +197,7 @@ void StartMPUTask(void *argument)
 {
   /* USER CODE BEGIN StartMPUTask */
   TickType_t xLastWakeTime;
-  const TickType_t xFrequency = 1000;
+  const TickType_t xFrequency = 10;
   xLastWakeTime = xTaskGetTickCount();
   /* Infinite loop */
   for(;;)
@@ -205,12 +205,12 @@ void StartMPUTask(void *argument)
 	int16_t AccData[3], GyroData[3], MagData[3];
 	for (int i = 0; i < 1; ++i) {
 	  MPU9250_GetData(AccData, GyroData, MagData);
-	  accelX_summ += accelX_filtered;
-	  accelY_summ += accelY_filtered;
-	  accelZ_summ += accelZ_filtered;
-	  gyroX_summ += gyroX_filtered;
-	  gyroY_summ += gyroY_filtered;
-	  gyroZ_summ += gyroZ_filtered;
+	  accelX_summ += accelX;
+	  accelY_summ += accelY;
+	  accelZ_summ += accelZ;
+	  gyroX_summ += gyroX;
+	  gyroY_summ += gyroY;
+	  gyroZ_summ += gyroZ;
 	  osDelay(1);
 	}
 	accelX_average = accelX_summ / 1;
@@ -218,7 +218,7 @@ void StartMPUTask(void *argument)
 	accelZ_average = accelZ_summ / 1;
 	gyroX_average = gyroX_summ / 1;
 	gyroY_average = gyroY_summ / 1;
-	gyroZ_average = (gyroZ_summ - 0.0343) / 1;
+	gyroZ_average = (gyroZ_summ - 0.0245) / 1;
 	accelX_summ = 0;
 	accelY_summ = 0;
 	accelZ_summ = 0;
@@ -228,30 +228,31 @@ void StartMPUTask(void *argument)
 
 	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, gyroZ_average);
 	eulerAngles(q_est, &roll, &pitch, &yaw);
+	yaw_corr = yaw / 2;
 //	can_data[0] = _buffer[0];
 //	can_data[1] = _buffer[1];
 
-	memcpy(can_data, &_buffer[8], 6);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderGyro, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	osDelay(100);
-	memcpy(can_data, &_buffer[0], 6);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderAccel, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-		can++;
-	}
-	osDelay(100);
+//	memcpy(can_data, &_buffer[8], 6);
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderGyro, can_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	}
+//	osDelay(1);
+//	memcpy(can_data, &_buffer[0], 6);
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderAccel, can_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//		can++;
+//	}
+//	osDelay(1);
 	memcpy(can_data, &roll, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}
-	osDelay(100);
+	osDelay(1);
 	memcpy(can_data, &pitch, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderPitch, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}
-	osDelay(100);
+	osDelay(1);
 	memcpy(can_data, &yaw, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
