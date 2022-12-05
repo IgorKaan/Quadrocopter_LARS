@@ -244,20 +244,21 @@ void StartMPUTask(void *argument)
 //	}
 //	osDelay(1);
 	memcpy(can_data, &roll, 4);
+	memcpy(&can_data[4], &pitch, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}
 	osDelay(1);
-	memcpy(can_data, &pitch, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderPitch, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	osDelay(1);
-	memcpy(can_data, &yaw, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	count = HAL_GetTick();
+//
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderPitch, can_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	}
+//	osDelay(1);
+//	memcpy(can_data, &yaw, 4);
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	}
+//	count = HAL_GetTick();
 	vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
   /* USER CODE END StartMPUTask */

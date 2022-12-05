@@ -123,7 +123,7 @@ int main(void)
   TxHeaderRoll.ExtId = 0;
   TxHeaderRoll.RTR = CAN_RTR_DATA; //CAN_RTR_REMOTE
   TxHeaderRoll.IDE = CAN_ID_STD;   // CAN_ID_EXT
-  TxHeaderRoll.DLC = 4;
+  TxHeaderRoll.DLC = 8;
   TxHeaderRoll.TransmitGlobalTime = 0;
 
   TxHeaderPitch.StdId = headerIdPitch;
