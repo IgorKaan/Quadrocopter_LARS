@@ -3,19 +3,21 @@
 class PIDImpl
 {
     public:
-        PIDImpl( double dt, double max, double min, double Kp, double Kd, double Ki );
+        PIDImpl(float dt, float max, float min, float imax, float imin, float Kp, float Kd, float Ki);
         ~PIDImpl();
-        double calculate( double setpoint, double pv );
+        float calculate(float setpoint, float pv);
 
     private:
-        double _dt;
-        double _max;
-        double _min;
-        double _Kp;
-        double _Kd;
-        double _Ki;
-        double _pre_error;
-        double _integral;
+        float _dt;
+        float _max;
+        float _min;
+        float _imax;
+        float _imin;
+        float _Kp;
+        float _Kd;
+        float _Ki;
+        float _pre_error;
+        float _integral;
 };
 
 

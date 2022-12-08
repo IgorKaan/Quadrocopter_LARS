@@ -1,5 +1,5 @@
 #include "PID.hpp"
-
+#include "config.hpp"
 #include <cmath>
 
 // PIDImpl::PIDImpl( double dt, double max, double min, double Kp, double Kd, double Ki )
@@ -18,10 +18,12 @@
 /**
  * Implementation
  */
-PIDImpl::PIDImpl(double dt, double max, double min, double Kp, double Kd, double Ki) :
+PIDImpl::PIDImpl(float dt, float max, float min, float imax, float imin, float Kp, float Kd, float Ki) :
     _dt(dt),
     _max(max),
     _min(min),
+    _imax(imax),
+    _imin(imin),
     _Kp(Kp),
     _Kd(Kd),
     _Ki(Ki),
@@ -30,25 +32,32 @@ PIDImpl::PIDImpl(double dt, double max, double min, double Kp, double Kd, double
 {
 }
 
-double PIDImpl::calculate(double setpoint, double pv)
+float PIDImpl::calculate(float setpoint, float pv)
 {
     
     // Calculate error
-    double error = setpoint - pv;
+    float error = setpoint - pv;
 
     // Proportional term
-    double Pout = _Kp * error;
+    float Pout = _Kp * error;
 
     // Integral term
     _integral += error * _dt;
-    double Iout = _Ki * _integral;
+    float Iout = _Ki * _integral;
+    if (Iout > _imax) {
+        Iout = _imax;
+    }
+    if (Iout < _imin) {
+        Iout = _imin;
+    }
 
     // Derivative term
-    double derivative = (error - _pre_error) / _dt;
-    double Dout = _Kd * derivative;
+    float derivative = (error - _pre_error) / _dt;
+    float Dout = _Kd * derivative;
 
     // Calculate total output
     double output = Pout + Iout + Dout;
+    //float output = Pout;
 
     // Restrict to max/min
     if( output > _max )

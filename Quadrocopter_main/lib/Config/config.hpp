@@ -1,3 +1,5 @@
+#pragma once 
+
 #define LED1 12
 #define LED2 14
 
@@ -6,7 +8,12 @@
 
 #define POWER_INC 3
 
-#define INTEGRAL_COEFFICIENT 0.6
+#define INTEGRAL_COEFFICIENT 0.5
+
+#define PID_OUTPUT 500
+
+#define PID_I_MAX 200
+#define PID_I_MIN -200
 
 #define PWM_MOTOR_1 25  // D6 X14 LB
 #define PWM_MOTOR_2 32  // D4 X12 RF

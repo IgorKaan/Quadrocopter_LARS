@@ -212,7 +212,8 @@ void StartMPUTask(void *argument)
 	gyroX_average = gyroX_filtered;
 	gyroY_average = gyroY_filtered;
 	gyroZ_average = gyroZ_filtered;
-	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, gyroZ_average);
+	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, 0);
+	yaw = 0;
 	eulerAngles(q_est, &roll, &pitch, &yaw);
 
 //	memcpy(can_data, &accelY_average, 4);

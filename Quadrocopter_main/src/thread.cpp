@@ -1,8 +1,10 @@
 #include <Arduino.h>
+
+#include "PID.hpp"
 #include "thread.hpp"
 #include "config.hpp"
+#include "ESP32CAN.h"
 #include "Fly_sky_iBus.h"
-#include <ESP32CAN.h>
 
 uint16_t chanel_read[6];
 
@@ -11,10 +13,10 @@ float deg_yaw, deg_pitch, deg_roll;
 float targetRoll, targetPitch, targetYaw;
 float errorRoll, errorPitch, errorYaw;
 float additionalPowerRF, additionalPowerRB, additionalPowerLF, additionalPowerLB;
-float powerRF = 3276.0;
-float powerRB = 3276.0;
-float powerLF = 3276.0;
-float powerLB = 3276.0;
+float powerRF = MIN_POWER;
+float powerRB = MIN_POWER;
+float powerLF = MIN_POWER;
+float powerLB = MIN_POWER;
 float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 
 void timer_interrupt() {
@@ -44,24 +46,31 @@ void iBusReadTask(void* pvParameters) {
 void pidRegulatorTask(void* pvParameters) {
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
+	const portTickType xPeriod = ( 5 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
+
+  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.3, 0.1, 0.0001);
+  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.3, 0.1, 0.0001);
+  PIDImpl pidYaw(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.3, 0.1, 0.0001);
 
   for(;;) {
     //xSemaphoreTake(param_mutex, portMAX_DELAY);
-    errorRoll = targetRoll - (int16_t)deg_roll;
-    errorPitch = targetPitch - (int16_t)deg_pitch;
-    errorYaw = targetYaw - (int16_t)deg_yaw;
+    // errorRoll = targetRoll - deg_roll;
+    // errorPitch = targetPitch - deg_pitch;
+    // errorYaw = targetYaw - deg_yaw;
+    errorRoll = pidRoll.calculate(targetRoll, deg_roll);
+    errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
+    errorYaw = targetYaw - deg_yaw;
 
-    additionalPowerLB += (errorPitch* 1) + (errorRoll * 1);
+    // additionalPowerLB += (pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
+    // additionalPowerRB += (pidPitch.calculate(targetPitch, pitch) - pidRoll.calculate(targetRoll, roll));
+    // additionalPowerLF += (-pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
+    // additionalPowerRF += (-pidPitch.calculate(targetPitch, pitch) - pidRoll.calculate(targetRoll, roll));
+
+    additionalPowerLB += (errorPitch * 1) + (errorRoll * 1);
     additionalPowerRB += (errorPitch * 1 - errorRoll * 1);
     additionalPowerLF += (-(errorPitch * 1) + errorRoll * 1);
     additionalPowerRF += (-(errorPitch * 1) - errorRoll * 1);
-
-    // additionalPowerLB += (errorPitch* 0.1) + (errorRoll * 0.1);
-    // additionalPowerRB += (errorPitch * 0.1 - errorRoll * 0.1);
-    // additionalPowerLF += (-(errorPitch * 0.1) + errorRoll * 0.1);
-    // additionalPowerRF += (-(errorPitch * 0.1) - errorRoll * 0.1);
 
     if (additionalPowerLB > (powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT) {
       additionalPowerLB = (powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT;
@@ -96,6 +105,8 @@ void pidRegulatorTask(void* pvParameters) {
     targetPowerRB = powerRB + additionalPowerRB;
     targetPowerLF = powerLF + additionalPowerLF;
 
+
+
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
   }
 }
@@ -129,10 +140,10 @@ void motorsControlTask(void* pvParameters) {
           powerLF += POWER_INC;
         }
         if (powerRB <= MAX_POWER - POWER_INC) {
-          powerRB += (3.0 + 1.5);
+          powerRB += (POWER_INC);
         }
         if (powerRF <= MAX_POWER - POWER_INC) {
-          powerRF += (3.0 + 1.5);
+          powerRF += (POWER_INC);
         }
       }
       if (chanel_read[2] < 1300) {

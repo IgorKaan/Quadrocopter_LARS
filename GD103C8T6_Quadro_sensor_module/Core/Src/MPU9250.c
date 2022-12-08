@@ -44,7 +44,7 @@ float Xe = 0.0;
 uint8_t test = 0x00;
 uint8_t value = 0;
 
-float K = 0.1;
+float K = 0.05;
 
 uint8_t _buffer[21];
 
@@ -475,12 +475,12 @@ void MPU9250_calibrate()
     data[5] = (-gyro_bias[2] / 4)       & 0xFF;
 
     // Push gyro biases to hardware registers
-    writeRegister(XG_OFFSET_H, data[0]);
-    writeRegister(XG_OFFSET_L, data[1]);
-    writeRegister(YG_OFFSET_H, data[2]);
-    writeRegister(YG_OFFSET_L, data[3]);
-    writeRegister(ZG_OFFSET_H, data[4]);
-    writeRegister(ZG_OFFSET_L, data[5]);
+//    writeRegister(XG_OFFSET_H, data[0]);
+//    writeRegister(XG_OFFSET_L, data[1]);
+//    writeRegister(YG_OFFSET_H, data[2]);
+//    writeRegister(YG_OFFSET_L, data[3]);
+//    writeRegister(ZG_OFFSET_H, data[4]);
+//    writeRegister(ZG_OFFSET_L, data[5]);
 
 //    data[0] = (-accel_bias[0] / 8  >> 8) & 0xFF; // Divide by 4 to get 32.9 LSB per deg/s to conform to expected bias input format
 //    data[1] = (-accel_bias[0] / 8)       & 0xFF; // Biases are additive, so change sign on calculated average gyro biases
@@ -613,10 +613,10 @@ void MPU9250_GetData(int16_t* AccData, int16_t* MagData, int16_t* GyroData)
 	accelX = accelX - (accel_bias[0] / 16384.0f * 9.8f);
 	accelY = accelY - (accel_bias[1] / 16384.0f * 9.8f);
 	accelZ = accelZ - (accel_bias[2] / 16384.0f * 9.8f);
-	gyroX_filtered = expRunningAverageGX(gyroX) - 0.0028;
-	gyroY_filtered = expRunningAverageGY(gyroY) - 0.020;
+	gyroX_filtered = expRunningAverageGX(gyroX) - 0.0050;
+	gyroY_filtered = expRunningAverageGY(gyroY) - 0.019;
 	gyroZ_filtered = expRunningAverageGZ(gyroZ) - 0.004;
-	accelX_filtered = expRunningAverageAX(accelX);
-	accelY_filtered = expRunningAverageAY(accelY);
+	accelX_filtered = expRunningAverageAX(accelX) - 0.018;
+	accelY_filtered = expRunningAverageAY(accelY) - 0.004;
 	accelZ_filtered = expRunningAverageAZ(accelZ);
 }

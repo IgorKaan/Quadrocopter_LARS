@@ -110,15 +110,64 @@ void setup() {
   // Создание тасков
 }
 extern float yaw, pitch, roll;
+extern float targetRoll, targetPitch, targetYaw;
+extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
+extern float errorRoll, errorPitch, errorYaw;
+extern float additionalPowerRF, additionalPowerRB, additionalPowerLF, additionalPowerLB;
+
+int i = 6000;
+
 void loop() {
-    Serial.print("roll: ");
-    Serial.print(roll);
+
+    Serial.print("tp LF: ");
+    Serial.print(targetPowerLF);
     Serial.print("\t\t");
-    Serial.print("pitch: ");
-    Serial.print(pitch);
+    Serial.print("tp RB: ");
+    Serial.print(targetPowerRB);
+    Serial.print("\t\t");
+    Serial.print("tp LF: ");
+    Serial.print(targetPowerLF);
+    Serial.print("\t\t");
+    Serial.print("tp LB: ");
+    Serial.println(targetPowerLB);
+    Serial.println("===============================");
+    delay(1000);
+    Serial.print("add RF: ");
+    Serial.print(additionalPowerRF);
+    Serial.print("\t\t");
+    Serial.print("add RB: ");
+    Serial.print(additionalPowerRB);
+    Serial.print("\t\t");
+    Serial.print("add LF: ");
+    Serial.print(additionalPowerLF);
+    Serial.print("\t\t");
+    Serial.print("add LB: ");
+    Serial.println(additionalPowerLB);
+    Serial.println("===============================");
+    
+    // ledcWrite(PWM_CHANNEL_MOTOR_4, 5000);
+    // delay(1000);
+    // i -= 100;
+    // ledcWrite(PWM_CHANNEL_MOTOR_4, 4000);
+    // delay(1000);
+    Serial.print("err roll: ");
+    Serial.print(errorRoll);
+    Serial.print("\t\t");
+    Serial.print("err pitch: ");
+    Serial.print(errorPitch);
     Serial.print("\t\t");
     Serial.print("yaw: ");
     Serial.println(yaw);
     Serial.println("===============================");
-    delay(100);
+    // delay(1000);
+    // Serial.print("target roll: ");
+    // Serial.print(targetRoll);
+    // Serial.print("\t\t");
+    // Serial.print("target pitch: ");
+    // Serial.print(targetPitch);
+    // Serial.print("\t\t");
+    // Serial.print("target yaw: ");
+    // Serial.println(targetYaw);
+    // Serial.println("===============================");
+    // delay(1000);
 }
