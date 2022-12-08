@@ -34,7 +34,7 @@ uint8_t acc_ofset_data_corrected[12];
 
 // переменные для калмана
 float varVolt = 0; // среднее отклонение (расчет в программе)
-float varProcess = 0.2; // скорость реакции на изменение (подбирается вручную)
+float varProcess = 0.8; // скорость реакции на изменение (подбирается вручную)
 float Pc = 0.0;
 float G = 0.0;
 float P = 1.0;
@@ -44,9 +44,47 @@ float Xe = 0.0;
 uint8_t test = 0x00;
 uint8_t value = 0;
 
+float K = 0.1;
+
 uint8_t _buffer[21];
 
 static uint8_t _mag_adjust[3];
+
+float expRunningAverageGX(float newVal) {
+  static float filVal = 0;
+  filVal += (newVal - filVal) * K;
+  return filVal;
+}
+
+float expRunningAverageGY(float newVal) {
+  static float filVal = 0;
+  filVal += (newVal - filVal) * K;
+  return filVal;
+}
+
+float expRunningAverageGZ(float newVal) {
+  static float filVal = 0;
+  filVal += (newVal - filVal) * K;
+  return filVal;
+}
+
+float expRunningAverageAX(float newVal) {
+  static float filVal = 0;
+  filVal += (newVal - filVal) * K;
+  return filVal;
+}
+
+float expRunningAverageAY(float newVal) {
+  static float filVal = 0;
+  filVal += (newVal - filVal) * K;
+  return filVal;
+}
+
+float expRunningAverageAZ(float newVal) {
+  static float filVal = 0;
+  filVal += (newVal - filVal) * K;
+  return filVal;
+}
 
 float filter(float val) { //функция фильтрации
 	Pc = P + varProcess;
@@ -105,7 +143,7 @@ void MPU_SPI_Read(uint8_t *p_buffer, uint8_t ReadAddr, uint16_t NumByteToRead)
 	uint8_t data = ReadAddr | READWRITE_CMD;
 	HAL_SPI_Transmit(&MPU9250_SPI, &data, 1, HAL_MAX_DELAY);
 	if (HAL_SPI_Receive(&MPU9250_SPI, p_buffer, NumByteToRead, HAL_MAX_DELAY) == HAL_OK) {
-		//HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+		HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
 
 	}
@@ -205,23 +243,23 @@ uint8_t MPU9250_Init()
 	uint8_t who = whoAmI();
 	if((who != 0x71) &&( who != 0x73))
 	{
-		return 1;
+		//return 1;
 	}
 
 	// enable accelerometer and gyro
 	writeRegister(PWR_MGMNT_2, SEN_ENABLE);
 
 	// setting accel range to 8G as default
-	writeRegister(ACCEL_CONFIG, ACCEL_FS_SEL_8G);
+	writeRegister(ACCEL_CONFIG, ACCEL_FS_SEL_16G);
 
 	// setting the gyro range to 500DPS as default
-	writeRegister(GYRO_CONFIG, GYRO_FS_SEL_500DPS);
+	writeRegister(GYRO_CONFIG, GYRO_FS_SEL_2000DPS);
 
 	// setting bandwidth to 184Hz as default
-	writeRegister(ACCEL_CONFIG2, DLPF_184);
+	writeRegister(ACCEL_CONFIG2, DLPF_10);
 
 	// setting gyro bandwidth to 184Hz
-	writeRegister(CONFIG, DLPF_184);
+	writeRegister(CONFIG, DLPF_10);
 
 	// setting the sample rate divider to 0 as default
 	writeRegister(SMPDIV, 0x00);
@@ -564,21 +602,21 @@ void MPU9250_GetData(int16_t* AccData, int16_t* MagData, int16_t* GyroData)
 	GyroData[1] = (((int16_t)_buffer[10]) << 8) | _buffer[11];
 	GyroData[2] = (((int16_t)_buffer[12]) << 8) | _buffer[13];
 
-	accelX = (((int16_t)((uint16_t)_buffer[0] << 8) + _buffer[1])) / 16384.0f * 9.8f;
-	accelY = (((int16_t)((uint16_t)_buffer[2] << 8) + _buffer[3])) / 16384.0f * 9.8f;
-	accelZ = (((int16_t)((uint16_t)_buffer[4] << 8) + _buffer[5])) / 16384.0f * 9.8f;
+	accelX = (((int16_t)((uint16_t)_buffer[0] << 8) + _buffer[1])) / 2048.0f * 9.8f;
+	accelY = (((int16_t)((uint16_t)_buffer[2] << 8) + _buffer[3])) / 2048.0f * 9.8f;
+	accelZ = (((int16_t)((uint16_t)_buffer[4] << 8) + _buffer[5])) / 2048.0f * 9.8f;
 //	accelX=((((int16_t)((uint16_t)_buffer[6] << 8) + _buffer[7])))/4096.0f*9.8f;
 //	accelY=((((int16_t)((uint16_t)_buffer[8] << 8) + _buffer[9])))/4096.0f*9.8f;
-	gyroX = (((int16_t)((uint16_t)_buffer[8] << 8) + _buffer[9])) / 65.5f * 3.14f / 180.0f;
-	gyroY = (((int16_t)((uint16_t)_buffer[10] << 8) + _buffer[11])) / 65.5f * 3.14f / 180.0f;
-	gyroZ = (((int16_t)((uint16_t)_buffer[12] << 8) + _buffer[13])) / 65.5f * 3.14f / 180.0f;
+	gyroX = (((int16_t)((uint16_t)_buffer[8] << 8) + _buffer[9])) / 16.4f * 3.14f / 180.0f;
+	gyroY = (((int16_t)((uint16_t)_buffer[10] << 8) + _buffer[11])) / 16.4f * 3.14f / 180.0f;
+	gyroZ = (((int16_t)((uint16_t)_buffer[12] << 8) + _buffer[13])) / 16.4f * 3.14f / 180.0f;
 	accelX = accelX - (accel_bias[0] / 16384.0f * 9.8f);
 	accelY = accelY - (accel_bias[1] / 16384.0f * 9.8f);
 	accelZ = accelZ - (accel_bias[2] / 16384.0f * 9.8f);
-	gyroX_filtered = filter(gyroX);
-	gyroY_filtered = filter(gyroY);
-	gyroZ_filtered = filter(gyroZ);
-	accelX_filtered = filter(accelX);
-	accelY_filtered = filter(accelY);
-	accelZ_filtered = filter(accelZ);
+	gyroX_filtered = expRunningAverageGX(gyroX) - 0.0028;
+	gyroY_filtered = expRunningAverageGY(gyroY) - 0.020;
+	gyroZ_filtered = expRunningAverageGZ(gyroZ) - 0.004;
+	accelX_filtered = expRunningAverageAX(accelX);
+	accelY_filtered = expRunningAverageAY(accelY);
+	accelZ_filtered = expRunningAverageAZ(accelZ);
 }

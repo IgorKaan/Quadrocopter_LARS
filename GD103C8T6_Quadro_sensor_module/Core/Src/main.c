@@ -89,7 +89,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();////
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -99,7 +99,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  //
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
