@@ -44,7 +44,11 @@ float Xe = 0.0;
 uint8_t test = 0x00;
 uint8_t value = 0;
 
-float K = 0.05;
+float K = 0.15;
+
+uint8_t config_register;
+uint8_t gyro_config_register;
+uint8_t accel_config_2_register;
 
 uint8_t _buffer[21];
 
@@ -256,10 +260,10 @@ uint8_t MPU9250_Init()
 	writeRegister(GYRO_CONFIG, GYRO_FS_SEL_2000DPS);
 
 	// setting bandwidth to 184Hz as default
-	writeRegister(ACCEL_CONFIG2, DLPF_10);
+	writeRegister(ACCEL_CONFIG2, DLPF_5);
 
 	// setting gyro bandwidth to 184Hz
-	writeRegister(CONFIG, DLPF_10);
+	writeRegister(CONFIG, DLPF_5);
 
 	// setting the sample rate divider to 0 as default
 	writeRegister(SMPDIV, 0x00);
@@ -269,6 +273,10 @@ uint8_t MPU9250_Init()
 
 	// set the I2C bus speed to 400 kHz
 	writeRegister(I2C_MST_CTRL, I2C_MST_CLK);
+
+	readRegisters(CONFIG, 1, &config_register);
+	readRegisters(GYRO_CONFIG, 1, &gyro_config_register);
+	readRegisters(ACCEL_CONFIG2, 1, &accel_config_2_register);
 
 	// check AK8963 WHO AM I register, expected value is 0x48 (decimal 72)
 	if( whoAmIAK8963() != 0x48 )

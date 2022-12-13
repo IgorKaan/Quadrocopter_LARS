@@ -1,5 +1,7 @@
 #pragma once 
 
+//#define CALIBRATION
+
 #define LED1 12
 #define LED2 14
 
@@ -8,7 +10,7 @@
 
 #define POWER_INC 3
 
-#define INTEGRAL_COEFFICIENT 0.5
+#define INTEGRAL_COEFFICIENT 0.20
 
 #define PID_OUTPUT 500
 

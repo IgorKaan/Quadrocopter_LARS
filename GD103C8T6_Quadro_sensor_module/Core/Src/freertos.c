@@ -31,6 +31,7 @@
 #include "math.h"
 #include <string.h>
 #include "can.h"
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +57,9 @@ extern CAN_TxHeaderTypeDef TxHeaderYaw;
 extern CAN_TxHeaderTypeDef TxHeaderAccel;
 extern CAN_TxHeaderTypeDef TxHeaderGyro;
 extern uint32_t TxMailbox;
-
+volatile float mass[1000];
 uint8_t can_data[8] = {0,};
-
+char buffer[10];
 float gyroX;
 float gyroY;
 float gyroZ;
@@ -199,8 +200,9 @@ void StartMPUTask(void *argument)
 {
   /* USER CODE BEGIN StartMPUTask */
   TickType_t xLastWakeTime;
-  const TickType_t xFrequency = 10;
+  const TickType_t xFrequency = 5;
   xLastWakeTime = xTaskGetTickCount();
+  int i = 0;
   /* Infinite loop */
   for(;;)
   {
@@ -215,28 +217,40 @@ void StartMPUTask(void *argument)
 	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, 0);
 	yaw = 0;
 	eulerAngles(q_est, &roll, &pitch, &yaw);
-
-//	memcpy(can_data, &accelY_average, 4);
-//	memcpy(&can_data[4], &accelX_average, 4);
-//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
-//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	mass[i] = accelY;
+//	i++;
+//	if (i == 999) {
+//		i = 0;
 //	}
-//	osDelay(1);
-//	memcpy(can_data, &accelZ_average, 4);
-//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
-//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	sprintf(buffer, "%0.5f", roll);
+//	buffer[8] = '\r';
+//	buffer[9] = '\n';
+//	HAL_UART_Transmit(&huart2, buffer, 10, HAL_MAX_DELAY);
+//	//osDelay(1);
+//	for (int i = 0; i < 10; ++i) {
+//		buffer[i] = 0;
 //	}
-
-	memcpy(can_data, &roll, 4);
-	memcpy(&can_data[4], &pitch, 4);
+	memcpy(can_data, &accelY_average, 4);
+	memcpy(&can_data[4], &accelX_average, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}
 	osDelay(1);
-	memcpy(can_data, &yaw, 4);
+	memcpy(can_data, &accelZ_average, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}
+
+//	memcpy(can_data, &roll, 4);
+//	memcpy(&can_data[4], &pitch, 4);
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	}
+//	osDelay(1);
+//	memcpy(can_data, &yaw, 4);
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	}
 	count = HAL_GetTick();
 	vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }

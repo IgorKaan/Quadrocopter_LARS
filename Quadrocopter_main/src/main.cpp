@@ -43,8 +43,6 @@ constexpr gpio_num_t CAN_TX_PIN = GPIO_NUM_23;
 constexpr gpio_num_t CAN_RX_PIN = GPIO_NUM_19;
 
 void setup() {
-  Serial.begin(115200);
-
   // Светодиоды
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
@@ -63,10 +61,27 @@ void setup() {
   ledcAttachPin(PWM_MOTOR_2, PWM_CHANNEL_MOTOR_2);
   ledcAttachPin(PWM_MOTOR_3, PWM_CHANNEL_MOTOR_3);
   ledcAttachPin(PWM_MOTOR_4, PWM_CHANNEL_MOTOR_4);
+  #ifndef CALIBRATION
   ledcWrite(PWM_CHANNEL_MOTOR_1, MIN_POWER);
   ledcWrite(PWM_CHANNEL_MOTOR_2, MIN_POWER);
   ledcWrite(PWM_CHANNEL_MOTOR_3, MIN_POWER);
   ledcWrite(PWM_CHANNEL_MOTOR_4, MIN_POWER);
+  #endif
+  #ifdef CALIBRATION
+  ledcWrite(PWM_CHANNEL_MOTOR_1, MAX_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_2, MAX_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_3, MAX_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_4, MAX_POWER);
+  delay(5000);
+  for (int i = MAX_POWER; i > MIN_POWER; --i) {
+  // ledcWrite(PWM_CHANNEL_MOTOR_1, i);
+  // ledcWrite(PWM_CHANNEL_MOTOR_2, i);
+  // ledcWrite(PWM_CHANNEL_MOTOR_3, i);
+  // ledcWrite(PWM_CHANNEL_MOTOR_4, i);
+  // delay(1);
+  }
+  delay(2500);
+  #endif
   // Инициализация двигателей
 
   delay(2500);
@@ -76,6 +91,7 @@ void setup() {
   serial_mutex = xSemaphoreCreateMutex();
   // Создание мьютексов
 
+  Serial.begin(115200);
   // Инициализация приемника
   iBus.begin(Serial2);
   // Инициализация приемника
@@ -109,6 +125,7 @@ void setup() {
   BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 0);
   // Создание тасков
 }
+extern float deg_pitch, deg_roll;
 extern float yaw, pitch, roll;
 extern float targetRoll, targetPitch, targetYaw;
 extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
@@ -119,31 +136,31 @@ int i = 6000;
 
 void loop() {
 
-    Serial.print("tp LF: ");
-    Serial.print(targetPowerLF);
-    Serial.print("\t\t");
-    Serial.print("tp RB: ");
-    Serial.print(targetPowerRB);
-    Serial.print("\t\t");
-    Serial.print("tp LF: ");
-    Serial.print(targetPowerLF);
-    Serial.print("\t\t");
-    Serial.print("tp LB: ");
-    Serial.println(targetPowerLB);
-    Serial.println("===============================");
-    delay(1000);
-    Serial.print("add RF: ");
-    Serial.print(additionalPowerRF);
-    Serial.print("\t\t");
-    Serial.print("add RB: ");
-    Serial.print(additionalPowerRB);
-    Serial.print("\t\t");
-    Serial.print("add LF: ");
-    Serial.print(additionalPowerLF);
-    Serial.print("\t\t");
-    Serial.print("add LB: ");
-    Serial.println(additionalPowerLB);
-    Serial.println("===============================");
+    // Serial.print("tp LF: ");
+    // Serial.print(targetPowerLF);
+    // Serial.print("\t\t");
+    // Serial.print("tp RB: ");
+    // Serial.print(targetPowerRB);
+    // Serial.print("\t\t");
+    // Serial.print("tp LF: ");
+    // Serial.print(targetPowerLF);
+    // Serial.print("\t\t");
+    // Serial.print("tp LB: ");
+    // Serial.println(targetPowerLB);
+    // Serial.println("===============================");
+    // delay(1000);
+    // Serial.print("add RF: ");
+    // Serial.print(additionalPowerRF);
+    // Serial.print("\t\t");
+    // Serial.print("add RB: ");
+    // Serial.print(additionalPowerRB);
+    // Serial.print("\t\t");
+    // Serial.print("add LF: ");
+    // Serial.print(additionalPowerLF);
+    // Serial.print("\t\t");
+    // Serial.print("add LB: ");
+    // Serial.println(additionalPowerLB);
+    // Serial.println("===============================");
     
     // ledcWrite(PWM_CHANNEL_MOTOR_4, 5000);
     // delay(1000);
@@ -151,10 +168,10 @@ void loop() {
     // ledcWrite(PWM_CHANNEL_MOTOR_4, 4000);
     // delay(1000);
     Serial.print("err roll: ");
-    Serial.print(errorRoll);
+    Serial.print(deg_roll);
     Serial.print("\t\t");
     Serial.print("err pitch: ");
-    Serial.print(errorPitch);
+    Serial.print(deg_pitch);
     Serial.print("\t\t");
     Serial.print("yaw: ");
     Serial.println(yaw);
@@ -169,5 +186,5 @@ void loop() {
     // Serial.print("target yaw: ");
     // Serial.println(targetYaw);
     // Serial.println("===============================");
-    // delay(1000);
+    delay(50);
 }

@@ -46,20 +46,20 @@ void iBusReadTask(void* pvParameters) {
 void pidRegulatorTask(void* pvParameters) {
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 5 / portTICK_RATE_MS );
+	const portTickType xPeriod = ( 20 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
 
-  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.3, 0.1, 0.0001);
-  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.3, 0.1, 0.0001);
-  PIDImpl pidYaw(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.3, 0.1, 0.0001);
+  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.2, 0.1, 0.0001);
+  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.2, 0.1, 0.0001);
+  PIDImpl pidYaw(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.2, 0.1, 0.0001);
 
   for(;;) {
     //xSemaphoreTake(param_mutex, portMAX_DELAY);
     // errorRoll = targetRoll - deg_roll;
     // errorPitch = targetPitch - deg_pitch;
     // errorYaw = targetYaw - deg_yaw;
-    errorRoll = pidRoll.calculate(targetRoll, deg_roll);
-    errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
+    errorRoll = (int)pidRoll.calculate(targetRoll, deg_roll);
+    errorPitch = (int)pidPitch.calculate(targetPitch, deg_pitch);
     errorYaw = targetYaw - deg_yaw;
 
     // additionalPowerLB += (pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
@@ -186,8 +186,8 @@ void canReceiveTask(void* pvParameter) {
           if (rx_frame.MsgID == 0x11) {
               memcpy(&roll, &rx_frame.data.u8[0], 4);
               memcpy(&pitch, &rx_frame.data.u8[4], 4);
-              deg_roll = roll;
-              deg_pitch = pitch;
+              deg_roll = -(int)(roll * 90 / 9.8);
+              deg_pitch = (int)(pitch * 90 / 9.8);
           }
           else if (rx_frame.MsgID == 0x13) {
               memcpy(&yaw, &rx_frame.data.u8[0], 4);

@@ -15,7 +15,6 @@ RM := rm -rf
 -include Middlewares/Third_Party/FreeRTOS/Source/subdir.mk
 -include Drivers/STM32F1xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
--include Core/Src/MadgwickFilter/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk
 
@@ -81,7 +80,7 @@ main-build: GD103C8T6_Quadro_sensor_module.elf secondary-outputs
 
 # Tool invocations
 GD103C8T6_Quadro_sensor_module.elf GD103C8T6_Quadro_sensor_module.map: $(OBJS) $(USER_OBJS) C:\Users\LKI2\Desktop\Quadrocopter_LARS\GD103C8T6_Quadro_sensor_module\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "GD103C8T6_Quadro_sensor_module.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\LKI2\Desktop\Quadrocopter_LARS\GD103C8T6_Quadro_sensor_module\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="GD103C8T6_Quadro_sensor_module.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+	arm-none-eabi-g++ -o "GD103C8T6_Quadro_sensor_module.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\LKI2\Desktop\Quadrocopter_LARS\GD103C8T6_Quadro_sensor_module\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="GD103C8T6_Quadro_sensor_module.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
