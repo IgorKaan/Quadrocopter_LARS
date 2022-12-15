@@ -5,10 +5,11 @@
 #define LED1 12
 #define LED2 14
 
-#define TARGET_ANGLE 35
+#define TARGET_ANGLE 10
+//#define TARGET_ANGLE 15
 
 #define MIN_POWER 3276
-#define MAX_POWER 5600
+#define MAX_POWER 6000
 
 #define POWER_INC 3
 

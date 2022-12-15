@@ -1,7 +1,7 @@
 #include "PID.hpp"
 #include "config.hpp"
 #include <cmath>
-
+//#include <Arduino.h>
 // PIDImpl::PIDImpl( double dt, double max, double min, double Kp, double Kd, double Ki )
 // {
 //     pimpl = new PIDImpl(dt, max ,min ,Kp ,Kd , Ki);
@@ -54,7 +54,7 @@ float PIDImpl::calculate(float setpoint, float pv)
     // Derivative term
     float derivative = (error - _pre_error) / _dt;
     float Dout = _Kd * derivative;
-
+    //Serial.println(Dout);
     // Calculate total output
     double output = Pout + Iout + Dout;
     //float output = Pout;

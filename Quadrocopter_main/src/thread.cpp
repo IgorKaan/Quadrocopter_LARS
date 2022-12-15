@@ -50,8 +50,8 @@ void pidRegulatorTask(void* pvParameters) {
 	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
 
-  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 10, 5, 0);
-  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 10, 5, 0.1);
+  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 7, 2, 0.1);
+  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 7, 2, 0.1);
   PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
 
   for(;;) {
@@ -60,7 +60,7 @@ void pidRegulatorTask(void* pvParameters) {
     // errorPitch = targetPitch - deg_pitch;
     // errorYaw = targetYaw - deg_yaw;
     errorRoll = pidRoll.calculate(targetRoll, deg_roll);
-    //errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
+    errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
     errorYaw = targetYaw - deg_yaw;
 
     // additionalPowerLB += (pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
@@ -178,7 +178,7 @@ void motorsControlTask(void* pvParameters) {
 
 void canReceiveTask(void* pvParameter) {
     portTickType xLastWakeTime;
-    const portTickType xPeriod = ( 5 / portTICK_RATE_MS );
+    const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
     xLastWakeTime = xTaskGetTickCount();
     BaseType_t xTaskWokenByReceive = pdFALSE;
     for (;;) {
@@ -187,8 +187,8 @@ void canReceiveTask(void* pvParameter) {
           if (rx_frame.MsgID == 0x11) {
               memcpy(&roll, &rx_frame.data.u8[0], 4);
               memcpy(&pitch, &rx_frame.data.u8[4], 4);
-              deg_roll = -(int)(roll * 90 / 9.8);
-              deg_pitch = (int)(pitch * 90 / 9.8);
+              deg_roll = (roll);
+              deg_pitch = (pitch);
           }
           else if (rx_frame.MsgID == 0x13) {
               memcpy(&yaw, &rx_frame.data.u8[0], 4);

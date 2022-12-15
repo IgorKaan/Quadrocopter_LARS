@@ -168,10 +168,10 @@ void loop() {
     // ledcWrite(PWM_CHANNEL_MOTOR_4, 4000);
     // delay(1000);
     Serial.print("roll: ");
-    Serial.print(deg_roll);
+    Serial.print(deg_roll, 5);
     Serial.print("\t\t");
     Serial.print("pitch: ");
-    Serial.print(deg_pitch);
+    Serial.print(deg_pitch, 5);
     Serial.print("\t\t");
     Serial.print("yaw: ");
     Serial.println(yaw);
@@ -189,5 +189,5 @@ void loop() {
     // Serial.print("target pitch: ");
     // Serial.println(targetPitch);
     // Serial.println("===============================");
-    delay(50);
+    delay(100);
 }

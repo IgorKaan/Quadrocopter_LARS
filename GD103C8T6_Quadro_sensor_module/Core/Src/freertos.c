@@ -200,7 +200,7 @@ void StartMPUTask(void *argument)
 {
   /* USER CODE BEGIN StartMPUTask */
   TickType_t xLastWakeTime;
-  const TickType_t xFrequency = 5;
+  const TickType_t xFrequency = 1;
   xLastWakeTime = xTaskGetTickCount();
   int i = 0;
   /* Infinite loop */
@@ -216,6 +216,7 @@ void StartMPUTask(void *argument)
 	gyroZ_average = gyroZ_filtered;
 	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, 0);
 	yaw = 0;
+	q_est.q4 = 0;
 	eulerAngles(q_est, &roll, &pitch, &yaw);
 //	mass[i] = accelY;
 //	i++;
@@ -230,27 +231,27 @@ void StartMPUTask(void *argument)
 //	for (int i = 0; i < 10; ++i) {
 //		buffer[i] = 0;
 //	}
-	memcpy(can_data, &accelY_average, 4);
-	memcpy(&can_data[4], &accelX_average, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-	osDelay(1);
-	memcpy(can_data, &accelZ_average, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
-
-//	memcpy(can_data, &roll, 4);
-//	memcpy(&can_data[4], &pitch, 4);
+//	memcpy(can_data, &accelY_average, 4);
+//	memcpy(&can_data[4], &accelX_average, 4);
 //	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
 //		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 //	}
 //	osDelay(1);
-//	memcpy(can_data, &yaw, 4);
+//	memcpy(can_data, &accelZ_average, 4);
 //	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
 //		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 //	}
+
+	memcpy(can_data, &roll, 4);
+	memcpy(&can_data[4], &pitch, 4);
+	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderRoll, can_data, &TxMailbox) == HAL_OK) {
+		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+	}
+	osDelay(1);
+	memcpy(can_data, &yaw, 4);
+	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
+		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+	}
 	count = HAL_GetTick();
 	vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }

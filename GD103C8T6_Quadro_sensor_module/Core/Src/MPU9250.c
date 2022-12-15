@@ -44,7 +44,7 @@ float Xe = 0.0;
 uint8_t test = 0x00;
 uint8_t value = 0;
 
-float K = 0.15;
+float K = 0.9;
 
 uint8_t config_register;
 uint8_t gyro_config_register;
