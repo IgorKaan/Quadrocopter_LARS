@@ -47,11 +47,11 @@ void iBusReadTask(void* pvParameters) {
 void pidRegulatorTask(void* pvParameters) {
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
+	const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
 
-  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 7, 2, 0.1);
-  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 7, 2, 0.1);
+  PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 5, 1.5, 0.1);
+  PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 5, 1.5, 0.1);
   PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
 
   for(;;) {
@@ -73,37 +73,36 @@ void pidRegulatorTask(void* pvParameters) {
     additionalPowerLF = (-(errorPitch * 1) + errorRoll * 1);
     additionalPowerRF = (-(errorPitch * 1) - errorRoll * 1);
 
-    if (additionalPowerLB > (powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerLB = (powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT;
+    if ((powerLB + additionalPowerLB) > MAX_POWER) {
+      targetPowerLB = MAX_POWER;
     }
-    if (additionalPowerLB < -(powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerLB = -(powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT;
+    if ((powerLB + additionalPowerLB) < MIN_POWER) {
+      targetPowerLB = MIN_POWER;
     }
-
-    if (additionalPowerRB > (powerRB - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerRB = (powerRB - MIN_POWER) * INTEGRAL_COEFFICIENT;
-    }
-    if (additionalPowerRB < -(powerRB - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerRB = -(powerRB - MIN_POWER) * INTEGRAL_COEFFICIENT;
-    }
-
-    if (additionalPowerLF > (powerLF - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerLF = (powerLF - MIN_POWER) * INTEGRAL_COEFFICIENT;
-    }
-    if (additionalPowerLF < -(powerLF - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerLF = -(powerLF - MIN_POWER) * INTEGRAL_COEFFICIENT;
-    }
-
-    if (additionalPowerRF > (powerRF - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerRF = (powerRF - MIN_POWER) * INTEGRAL_COEFFICIENT;
-    }
-    if (additionalPowerRF < -(powerRF - MIN_POWER) * INTEGRAL_COEFFICIENT) {
-      additionalPowerRF = -(powerRF - MIN_POWER) * INTEGRAL_COEFFICIENT;
-    }
-
     targetPowerLB = powerLB + additionalPowerLB;
+
+    if ((powerRF + additionalPowerRF) > MAX_POWER) {
+      targetPowerRF = MAX_POWER;
+    }
+    if ((powerRF + additionalPowerRF) < MIN_POWER) {
+      targetPowerRF = MIN_POWER;
+    }
     targetPowerRF = powerRF + additionalPowerRF;
+
+    if ((powerRB + additionalPowerRB) > MAX_POWER) {
+      targetPowerRB = MAX_POWER;
+    }
+    if ((powerRB + additionalPowerRB) < MIN_POWER) {
+      targetPowerRB = MIN_POWER;
+    }
     targetPowerRB = powerRB + additionalPowerRB;
+
+    if ((powerLF + additionalPowerLF) > MAX_POWER) {
+      targetPowerLF = MAX_POWER;
+    }
+    if ((powerLF + additionalPowerLB) < MIN_POWER) {
+      targetPowerLF = MIN_POWER;
+    }
     targetPowerLF = powerLF + additionalPowerLF;
 
 
@@ -127,40 +126,17 @@ void iBusLoopTask(void* pvParameters){
 
 void motorsControlTask(void* pvParameters) {
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
+	const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
     if ((chanel_read[4] > 1900) && (chanel_read[5] > 1900)) {
 
-      if (chanel_read[2] > 1700) {
-        if (powerLB <= (MAX_POWER - POWER_INC)) {
-          powerLB += POWER_INC;
-        }
-        if (powerLF <= MAX_POWER - POWER_INC) {
-          powerLF += POWER_INC;
-        }
-        if (powerRB <= MAX_POWER - POWER_INC) {
-          powerRB += (POWER_INC);
-        }
-        if (powerRF <= MAX_POWER - POWER_INC) {
-          powerRF += (POWER_INC);
-        }
-      }
-      if (chanel_read[2] < 1300) {
-        if (powerLB >= (MIN_POWER + POWER_INC)) {
-          powerLB -= POWER_INC * 2;
-        }
-        if (powerLF >= MIN_POWER + POWER_INC) {
-          powerLF -= POWER_INC * 2;
-        }
-        if (powerRB >= MIN_POWER + POWER_INC) {
-          powerRB -= POWER_INC * 2;
-        }
-        if (powerRF >= MIN_POWER + POWER_INC) {
-          powerRF -= POWER_INC * 2;
-      }
-    }
+      powerLB = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerLF = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerRB = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerRF = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+
       ledcWrite(PWM_CHANNEL_MOTOR_1, targetPowerLB); //black usb back   LB  
       ledcWrite(PWM_CHANNEL_MOTOR_2, targetPowerRF); //red usb front    RF
       ledcWrite(PWM_CHANNEL_MOTOR_3, targetPowerRB); // red usb back    RB
