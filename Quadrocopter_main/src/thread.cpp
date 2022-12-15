@@ -35,9 +35,10 @@ void iBusReadTask(void* pvParameters) {
     for (int i = 0; i < 6; ++i)
     {
       chanel_read[i] = iBus.readChannel(i);
-      targetRoll = map(chanel_read[0], 1000, 2000, -10, 10);
-      targetPitch = map(chanel_read[1], 1000, 2000, -10, 10);
     }
+    
+    targetRoll = map(chanel_read[0], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
+    targetPitch = map(chanel_read[1], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
     //xSemaphoreGive(serial_mutex);
   } 
@@ -46,20 +47,20 @@ void iBusReadTask(void* pvParameters) {
 void pidRegulatorTask(void* pvParameters) {
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 20 / portTICK_RATE_MS );
+	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
 
-  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.2, 0.1, 0.0001);
-  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.2, 0.1, 0.0001);
-  PIDImpl pidYaw(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 0.2, 0.1, 0.0001);
+  PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 10, 5, 0);
+  PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 10, 5, 0.1);
+  PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
 
   for(;;) {
     //xSemaphoreTake(param_mutex, portMAX_DELAY);
     // errorRoll = targetRoll - deg_roll;
     // errorPitch = targetPitch - deg_pitch;
     // errorYaw = targetYaw - deg_yaw;
-    errorRoll = (int)pidRoll.calculate(targetRoll, deg_roll);
-    errorPitch = (int)pidPitch.calculate(targetPitch, deg_pitch);
+    errorRoll = pidRoll.calculate(targetRoll, deg_roll);
+    //errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
     errorYaw = targetYaw - deg_yaw;
 
     // additionalPowerLB += (pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
@@ -67,10 +68,10 @@ void pidRegulatorTask(void* pvParameters) {
     // additionalPowerLF += (-pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
     // additionalPowerRF += (-pidPitch.calculate(targetPitch, pitch) - pidRoll.calculate(targetRoll, roll));
 
-    additionalPowerLB += (errorPitch * 1) + (errorRoll * 1);
-    additionalPowerRB += (errorPitch * 1 - errorRoll * 1);
-    additionalPowerLF += (-(errorPitch * 1) + errorRoll * 1);
-    additionalPowerRF += (-(errorPitch * 1) - errorRoll * 1);
+    additionalPowerLB = (errorPitch * 1) + (errorRoll * 1);
+    additionalPowerRB = (errorPitch * 1 - errorRoll * 1);
+    additionalPowerLF = (-(errorPitch * 1) + errorRoll * 1);
+    additionalPowerRF = (-(errorPitch * 1) - errorRoll * 1);
 
     if (additionalPowerLB > (powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT) {
       additionalPowerLB = (powerLB - MIN_POWER) * INTEGRAL_COEFFICIENT;

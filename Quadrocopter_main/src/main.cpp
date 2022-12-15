@@ -84,7 +84,7 @@ void setup() {
   #endif
   // Инициализация двигателей
 
-  delay(2500);
+  delay(5000);
 
   // Создание мьютексов
   param_mutex = xSemaphoreCreateMutex();
@@ -118,11 +118,11 @@ void setup() {
   // Инициализация CAN шины
 
   // Создание тасков
-  BaseType_t t1 = xTaskCreatePinnedToCore(iBusReadTask, "Task1", 5000, NULL, 1, &Task1, 0);
+  BaseType_t t1 = xTaskCreatePinnedToCore(iBusReadTask, "Task1", 5000, NULL, 1, &Task1, 1);
   BaseType_t t2 = xTaskCreatePinnedToCore(iBusLoopTask, "Task2", 5000, NULL, 1, &Task2, 1);
   BaseType_t t3 = xTaskCreatePinnedToCore(motorsControlTask, "Task3", 5000, NULL, 1, &Task3, 1);
   BaseType_t t4 = xTaskCreatePinnedToCore(canReceiveTask, "Task4", 30000, NULL, 1, &Task4, 1);
-  BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 0);
+  BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 1);
   // Создание тасков
 }
 extern float deg_pitch, deg_roll;
@@ -167,24 +167,27 @@ void loop() {
     // i -= 100;
     // ledcWrite(PWM_CHANNEL_MOTOR_4, 4000);
     // delay(1000);
-    Serial.print("err roll: ");
+    Serial.print("roll: ");
     Serial.print(deg_roll);
     Serial.print("\t\t");
-    Serial.print("err pitch: ");
+    Serial.print("pitch: ");
     Serial.print(deg_pitch);
     Serial.print("\t\t");
     Serial.print("yaw: ");
     Serial.println(yaw);
     Serial.println("===============================");
     // delay(1000);
+    Serial.print("error roll: ");
+    Serial.print(errorRoll);
+    Serial.print("\t\t");
+    Serial.print("error pitch: ");
+    Serial.println(errorPitch);
+    Serial.println("===============================");
     // Serial.print("target roll: ");
     // Serial.print(targetRoll);
     // Serial.print("\t\t");
     // Serial.print("target pitch: ");
-    // Serial.print(targetPitch);
-    // Serial.print("\t\t");
-    // Serial.print("target yaw: ");
-    // Serial.println(targetYaw);
+    // Serial.println(targetPitch);
     // Serial.println("===============================");
     delay(50);
 }

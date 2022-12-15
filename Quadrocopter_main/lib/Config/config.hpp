@@ -5,14 +5,16 @@
 #define LED1 12
 #define LED2 14
 
+#define TARGET_ANGLE 35
+
 #define MIN_POWER 3276
 #define MAX_POWER 5600
 
 #define POWER_INC 3
 
-#define INTEGRAL_COEFFICIENT 0.20
+#define INTEGRAL_COEFFICIENT 0.5
 
-#define PID_OUTPUT 500
+#define PID_OUTPUT 2000
 
 #define PID_I_MAX 200
 #define PID_I_MIN -200
