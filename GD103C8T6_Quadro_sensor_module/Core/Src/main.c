@@ -27,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "madgwickFilter.h"
+#include "barometer.h"
 #include "MPU9250.h"
 #include <string.h>
 #include <stdio.h>
@@ -39,11 +40,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#ifdef __GNUC__
-#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -60,6 +57,7 @@ CAN_TxHeaderTypeDef TxHeaderPitch;
 CAN_TxHeaderTypeDef TxHeaderYaw;
 CAN_TxHeaderTypeDef TxHeaderAccel;
 CAN_TxHeaderTypeDef TxHeaderGyro;
+CAN_TxHeaderTypeDef TxHeaderAltitude;
 CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailbox = 0;
 const uint32_t headerIdRoll = 0x11;
@@ -67,6 +65,7 @@ const uint32_t headerIdPitch = 0x12;
 const uint32_t headerIdYaw = 0x13;
 const uint32_t headerIdAccel = 0x14;
 const uint32_t headerIdGyro = 0x15;
+const uint32_t headerIdAltitude = 0x16;
 
 /* USER CODE END PV */
 
@@ -74,8 +73,11 @@ const uint32_t headerIdGyro = 0x15;
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
+void ms5611_init();
+void MS5611Begin();
 uint8_t MPU9250_Init();
 void MPU9250_calibrate();
+void Barometer_calibrate();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -122,6 +124,8 @@ int main(void)
 //	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 	//HAL_Delay(500);
   }
+  ms5611_init();
+  Barometer_calibrate();
   MPU9250_calibrate();
   HAL_Delay(2000);
   MPU9250_Init();
@@ -161,6 +165,13 @@ int main(void)
   TxHeaderGyro.IDE = CAN_ID_STD;   // CAN_ID_EXT
   TxHeaderGyro.DLC = 6;
   TxHeaderGyro.TransmitGlobalTime = 0;
+
+  TxHeaderAltitude.StdId = headerIdAltitude;
+  TxHeaderAltitude.ExtId = 0;
+  TxHeaderAltitude.RTR = CAN_RTR_DATA; //CAN_RTR_REMOTE
+  TxHeaderAltitude.IDE = CAN_ID_STD;   // CAN_ID_EXT
+  TxHeaderAltitude.DLC = 4;
+  TxHeaderAltitude.TransmitGlobalTime = 0;
 
   sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
   sFilterConfig.FilterIdHigh = 0;

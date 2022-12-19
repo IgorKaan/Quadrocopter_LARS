@@ -37,9 +37,10 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
- ../Core/Src/madgwickFilter.h ../Core/Src/MPU9250.h \
- ../Core/Src/MPU9250_Config.h ../Core/Inc/can.h ../Core/Inc/main.h \
- ../Core/Inc/usart.h
+ ../Core/Src/madgwickFilter.h \
+ C:/Users/LKI2/Desktop/Quadrocopter_LARS/GD103C8T6_Quadro_sensor_module/Core/Cpp_main/cpp_main.hpp \
+ ../Core/Src/MPU9250.h ../Core/Src/MPU9250_Config.h ../Core/Inc/usart.h \
+ ../Core/Inc/main.h ../Core/Inc/can.h
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
@@ -80,8 +81,9 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
 ../Core/Src/madgwickFilter.h:
+C:/Users/LKI2/Desktop/Quadrocopter_LARS/GD103C8T6_Quadro_sensor_module/Core/Cpp_main/cpp_main.hpp:
 ../Core/Src/MPU9250.h:
 ../Core/Src/MPU9250_Config.h:
-../Core/Inc/can.h:
-../Core/Inc/main.h:
 ../Core/Inc/usart.h:
+../Core/Inc/main.h:
+../Core/Inc/can.h:

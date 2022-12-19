@@ -6,8 +6,9 @@
 #include "ESP32CAN.h"
 #include "Fly_sky_iBus.h"
 
-uint16_t chanel_read[6];
+uint16_t channel_read[6];
 
+float altitude;
 float yaw, pitch, roll;
 float deg_yaw, deg_pitch, deg_roll;
 float targetRoll, targetPitch, targetYaw;
@@ -18,6 +19,15 @@ float powerRB = MIN_POWER;
 float powerLF = MIN_POWER;
 float powerLB = MIN_POWER;
 float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
+
+// PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 1.5);
+// PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 1.5);
+// PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 1.5);
+
+PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
+PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
+PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
+
 
 void timer_interrupt() {
     
@@ -34,11 +44,12 @@ void iBusReadTask(void* pvParameters) {
     static uint16_t chanel[6] = {0, 0, 0, 0, 0, 0};
     for (int i = 0; i < 6; ++i)
     {
-      chanel_read[i] = iBus.readChannel(i);
+      channel_read[i] = iBus.readChannel(i);
     }
     
-    targetRoll = map(chanel_read[0], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
-    targetPitch = map(chanel_read[1], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
+    targetRoll = map(channel_read[0], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
+    targetPitch = map(channel_read[1], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
+    targetYaw = map(channel_read[3], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
     //xSemaphoreGive(serial_mutex);
   } 
@@ -50,9 +61,9 @@ void pidRegulatorTask(void* pvParameters) {
 	const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
 	xLastWakeTime = xTaskGetTickCount();
 
-  PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 5, 1.5, 0.1);
-  PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 5, 1.5, 0.1);
-  PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
+  // PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4, 1.5, 0.1);
+  // PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4, 1.5, 0.1);
+  // PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
 
   for(;;) {
     //xSemaphoreTake(param_mutex, portMAX_DELAY);
@@ -61,17 +72,17 @@ void pidRegulatorTask(void* pvParameters) {
     // errorYaw = targetYaw - deg_yaw;
     errorRoll = pidRoll.calculate(targetRoll, deg_roll);
     errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
-    errorYaw = targetYaw - deg_yaw;
+    errorYaw = pidYaw.calculate(targetYaw, 0);
 
     // additionalPowerLB += (pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
     // additionalPowerRB += (pidPitch.calculate(targetPitch, pitch) - pidRoll.calculate(targetRoll, roll));
     // additionalPowerLF += (-pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
     // additionalPowerRF += (-pidPitch.calculate(targetPitch, pitch) - pidRoll.calculate(targetRoll, roll));
 
-    additionalPowerLB = (errorPitch * 1) + (errorRoll * 1);
-    additionalPowerRB = (errorPitch * 1 - errorRoll * 1);
-    additionalPowerLF = (-(errorPitch * 1) + errorRoll * 1);
-    additionalPowerRF = (-(errorPitch * 1) - errorRoll * 1);
+    additionalPowerLB = errorPitch + errorRoll - errorYaw;
+    additionalPowerRB = errorPitch - errorRoll + errorYaw;
+    additionalPowerLF = -errorPitch + errorRoll + errorYaw;
+    additionalPowerRF = -errorPitch - errorRoll - errorYaw;
 
     if ((powerLB + additionalPowerLB) > MAX_POWER) {
       targetPowerLB = MAX_POWER;
@@ -130,12 +141,16 @@ void motorsControlTask(void* pvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
-    if ((chanel_read[4] > 1900) && (chanel_read[5] > 1900)) {
+    if ((channel_read[4] > 1900) && (channel_read[5] > 1900)) {
+      //pidRoll.setPcoefficient(map(channel_read[4], 1000, 2000, 1.0, 7.0));
+      //pidRoll.setDcoefficient(map(channel_read[5], 1000, 2000, 1, 4));
+      // pidPitch.setPcoefficient(6);
+      // pidPitch.setDcoefficient(6);
 
-      powerLB = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
-      powerLF = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
-      powerRB = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
-      powerRF = map(chanel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerLB = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerLF = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerRB = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      powerRF = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
 
       ledcWrite(PWM_CHANNEL_MOTOR_1, targetPowerLB); //black usb back   LB  
       ledcWrite(PWM_CHANNEL_MOTOR_2, targetPowerRF); //red usb front    RF
@@ -147,6 +162,10 @@ void motorsControlTask(void* pvParameters) {
       ledcWrite(PWM_CHANNEL_MOTOR_2, MIN_POWER);
       ledcWrite(PWM_CHANNEL_MOTOR_3, MIN_POWER);
       ledcWrite(PWM_CHANNEL_MOTOR_4, MIN_POWER);
+      targetPowerLB = MIN_POWER;
+      targetPowerRF = MIN_POWER;
+      targetPowerRB = MIN_POWER;
+      targetPowerLF = MIN_POWER;
     }
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
   } 
@@ -168,7 +187,10 @@ void canReceiveTask(void* pvParameter) {
           }
           else if (rx_frame.MsgID == 0x13) {
               memcpy(&yaw, &rx_frame.data.u8[0], 4);
-          }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+          }       
+          else if (rx_frame.MsgID == 0x16) {
+              memcpy(&altitude, &rx_frame.data.u8[0], 4);
+          }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
       }
       if( xTaskWokenByReceive != pdFALSE ) {
           /* We should switch context so the ISR returns to a different task.

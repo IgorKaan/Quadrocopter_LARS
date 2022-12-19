@@ -25,13 +25,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "MadgwickFilter/MadgwickAHRS.h"
 #include "madgwickFilter.h"
+#include <cpp_main.hpp>
 #include "MPU9250.h"
-#include "math.h"
 #include <string.h>
-#include "can.h"
 #include "usart.h"
+#include "math.h"
+#include "can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +56,11 @@ extern CAN_TxHeaderTypeDef TxHeaderPitch;
 extern CAN_TxHeaderTypeDef TxHeaderYaw;
 extern CAN_TxHeaderTypeDef TxHeaderAccel;
 extern CAN_TxHeaderTypeDef TxHeaderGyro;
+extern CAN_TxHeaderTypeDef TxHeaderAltitude;
 extern uint32_t TxMailbox;
 volatile float mass[1000];
 uint8_t can_data[8] = {0,};
+uint8_t can_alt_data[8] = {0,};
 char buffer[10];
 float gyroX;
 float gyroY;
@@ -96,11 +98,13 @@ extern uint8_t _buffer[21];
 extern uint16_t ii, packet_count, fifo_count;
 
 uint32_t can = 0;
+
+extern volatile float relativeAltitudeFiltered;
 //uint8_t buffer[12];
 
 int32_t gyro_bias[3]  = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
 int32_t accel_bias_reg[3] = {0, 0, 0};
-
+uint32_t rawTemperature = 0;
 uint32_t count = 0;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -120,6 +124,8 @@ const osThreadAttr_t MPUTask_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+void Barometer_calculate();
+uint32_t MS5611GetTemperature();
 void MPU9250_GetData(int16_t* AccData, int16_t* MagData, int16_t* GyroData);
 /* USER CODE END FunctionPrototypes */
 
@@ -181,10 +187,19 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
+  TickType_t xLastWakeTime;
+  const TickType_t xFrequency = 50;
+  xLastWakeTime = xTaskGetTickCount();
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	Barometer_calculate();
+	memcpy(can_alt_data, &relativeAltitudeFiltered, 4);
+	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderAltitude, can_alt_data, &TxMailbox) == HAL_OK) {
+		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+	}
+	osDelay(1);
+	vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -202,7 +217,6 @@ void StartMPUTask(void *argument)
   TickType_t xLastWakeTime;
   const TickType_t xFrequency = 1;
   xLastWakeTime = xTaskGetTickCount();
-  int i = 0;
   /* Infinite loop */
   for(;;)
   {

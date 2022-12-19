@@ -1,3 +1,4 @@
+#include "PID.hpp"
 #include <Arduino.h>
 #include "thread.hpp"
 #include "config.hpp"
@@ -124,9 +125,13 @@ void setup() {
   BaseType_t t4 = xTaskCreatePinnedToCore(canReceiveTask, "Task4", 30000, NULL, 1, &Task4, 1);
   BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 1);
   // Создание тасков
+
 }
+extern PIDImpl pidRoll;
+extern PIDImpl pidPitch;
 extern float deg_pitch, deg_roll;
 extern float yaw, pitch, roll;
+extern float altitude;
 extern float targetRoll, targetPitch, targetYaw;
 extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 extern float errorRoll, errorPitch, errorYaw;
@@ -167,6 +172,11 @@ void loop() {
     // i -= 100;
     // ledcWrite(PWM_CHANNEL_MOTOR_4, 4000);
     // delay(1000);
+
+    Serial.print("altitude: ");
+    Serial.println(altitude);
+    Serial.println("===============================");
+
     Serial.print("roll: ");
     Serial.print(deg_roll, 5);
     Serial.print("\t\t");
@@ -174,7 +184,7 @@ void loop() {
     Serial.print(deg_pitch, 5);
     Serial.print("\t\t");
     Serial.print("yaw: ");
-    Serial.println(yaw);
+    Serial.println(targetYaw);
     Serial.println("===============================");
     // delay(1000);
     Serial.print("error roll: ");
@@ -183,11 +193,11 @@ void loop() {
     Serial.print("error pitch: ");
     Serial.println(errorPitch);
     Serial.println("===============================");
-    // Serial.print("target roll: ");
-    // Serial.print(targetRoll);
-    // Serial.print("\t\t");
-    // Serial.print("target pitch: ");
-    // Serial.println(targetPitch);
-    // Serial.println("===============================");
+    Serial.print("P koeff: ");
+    Serial.print(pidRoll.getPcoefficient());
+    Serial.print("\t\t");
+    Serial.print("D koeff: ");
+    Serial.println(pidRoll.getDcoefficient());
+    Serial.println("===============================");
     delay(100);
 }

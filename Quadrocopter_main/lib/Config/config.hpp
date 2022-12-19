@@ -5,23 +5,23 @@
 #define LED1 12
 #define LED2 14
 
-#define TARGET_ANGLE 30
+#define TARGET_ANGLE 10
 //#define TARGET_ANGLE 15
 
 #define MIN_JOY_OUTPUT 1100
 #define MAX_JOY_OUTPUT 1900
 
 #define MIN_POWER 3276
-#define MAX_POWER 6000
+#define MAX_POWER 5000
 
 #define POWER_INC 1
 
-#define INTEGRAL_COEFFICIENT 0.5
+#define INTEGRAL_COEFFICIENT 0.2
 
-#define PID_OUTPUT 2000
+#define PID_OUTPUT 3000
 
-#define PID_I_MAX 200
-#define PID_I_MIN -200
+#define PID_I_MAX 300
+#define PID_I_MIN -300
 
 #define PWM_MOTOR_1 25  // D6 X14 LB
 #define PWM_MOTOR_2 32  // D4 X12 RF

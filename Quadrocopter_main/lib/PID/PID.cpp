@@ -32,6 +32,22 @@ PIDImpl::PIDImpl(float dt, float max, float min, float imax, float imin, float K
 {
 }
 
+float PIDImpl::getDcoefficient() {
+    return _Kd;
+}
+
+float PIDImpl::getPcoefficient() {
+    return _Kp;
+}
+
+void PIDImpl::setPcoefficient(float p) {
+    _Kp = p;
+}
+
+void PIDImpl::setDcoefficient(float d) {
+    _Kd = d;
+}
+
 float PIDImpl::calculate(float setpoint, float pv)
 {
     

@@ -1,3 +1,6 @@
+"./Core/Cpp_main/MS5611.o"
+"./Core/Cpp_main/barometer.o"
+"./Core/Cpp_main/cpp_main.o"
 "./Core/Src/MPU9250.o"
 "./Core/Src/can.o"
 "./Core/Src/freertos.o"

@@ -4,6 +4,11 @@ class PIDImpl
 {
     public:
         PIDImpl(float dt, float max, float min, float imax, float imin, float Kp, float Kd, float Ki);
+
+        float getDcoefficient();
+        float getPcoefficient();
+        void setPcoefficient(float p);
+        void setDcoefficient(float d);
         ~PIDImpl();
         float calculate(float setpoint, float pv);
 

@@ -37,6 +37,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
  ../Core/Inc/can.h ../Core/Inc/main.h ../Core/Inc/spi.h \
  ../Core/Inc/usart.h ../Core/Inc/gpio.h ../Core/Src/madgwickFilter.h \
+ C:/Users/LKI2/Desktop/Quadrocopter_LARS/GD103C8T6_Quadro_sensor_module/Core/Cpp_main/barometer.h \
  ../Core/Src/MPU9250.h ../Core/Src/MPU9250_Config.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
@@ -81,5 +82,6 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/usart.h:
 ../Core/Inc/gpio.h:
 ../Core/Src/madgwickFilter.h:
+C:/Users/LKI2/Desktop/Quadrocopter_LARS/GD103C8T6_Quadro_sensor_module/Core/Cpp_main/barometer.h:
 ../Core/Src/MPU9250.h:
 ../Core/Src/MPU9250_Config.h:
