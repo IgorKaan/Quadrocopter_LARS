@@ -1,4 +1,5 @@
 #include "PID.hpp"
+#include "TFMPlus.h"
 #include <Arduino.h>
 #include "thread.hpp"
 #include "config.hpp"
@@ -12,8 +13,10 @@ void timer_interrupt();
 void iBusReadTask(void* pvParameters);
 void iBusLoopTask(void* pvParameters);
 void canReceiveTask(void* pvParameters);
+void TFMiniReadTask(void* pvParameters);
 void pidRegulatorTask(void* pvParameters);
 void motorsControlTask(void* pvParameters);
+
 
 #define TIMER_NUMBER 0
 // Частота ESP32 = 80МГц = 80.000.000Гц, при
@@ -31,6 +34,7 @@ TaskHandle_t Task2;
 TaskHandle_t Task3;
 TaskHandle_t Task4;
 TaskHandle_t Task5;
+TaskHandle_t Task6;
 
 SemaphoreHandle_t serial_mutex;
 SemaphoreHandle_t param_mutex;
@@ -42,6 +46,8 @@ const int interval = 500;         // Интервал отправки CAN со�
 const int rx_queue_size = 1;     // Размер буфера приёма
 constexpr gpio_num_t CAN_TX_PIN = GPIO_NUM_23;
 constexpr gpio_num_t CAN_RX_PIN = GPIO_NUM_19;
+
+TFMPlus tfmP; 
 
 void setup() {
   // Светодиоды
@@ -93,6 +99,26 @@ void setup() {
   // Создание мьютексов
 
   Serial.begin(115200);
+
+  Serial1.begin(115200, SERIAL_8N1, RX1_PIN, TX1_PIN);
+  Serial.println("start");
+  tfmP.begin(&Serial1);
+
+  if(tfmP.sendCommand(SOFT_RESET, 0)) {
+    Serial.println("TFMini soft reset... ");
+  }
+  delay(1000);
+  if (tfmP.sendCommand(GET_FIRMWARE_VERSION, 0)) {
+    Serial.println("TFMini version: ");
+    Serial.print(tfmP.version[0]); // print three single numbers
+    Serial.print(".");
+    Serial.print(tfmP.version[1]); // each separated by a dot
+    Serial.print(".");
+    Serial.println(tfmP.version[2]);
+  }
+  else {
+    Serial.println("Failed to initialize TFMini");
+  }
   // Инициализация приемника
   iBus.begin(Serial2);
   // Инициализация приемника
@@ -124,6 +150,7 @@ void setup() {
   BaseType_t t3 = xTaskCreatePinnedToCore(motorsControlTask, "Task3", 5000, NULL, 1, &Task3, 1);
   BaseType_t t4 = xTaskCreatePinnedToCore(canReceiveTask, "Task4", 30000, NULL, 1, &Task4, 1);
   BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 1);
+  BaseType_t t6 = xTaskCreatePinnedToCore(TFMiniReadTask, "Task6", 5000, NULL, 1, &Task6, 0);
   // Создание тасков
 
 }
@@ -140,39 +167,7 @@ extern float additionalPowerRF, additionalPowerRB, additionalPowerLF, additional
 int i = 6000;
 
 void loop() {
-
-    // Serial.print("tp LF: ");
-    // Serial.print(targetPowerLF);
-    // Serial.print("\t\t");
-    // Serial.print("tp RB: ");
-    // Serial.print(targetPowerRB);
-    // Serial.print("\t\t");
-    // Serial.print("tp LF: ");
-    // Serial.print(targetPowerLF);
-    // Serial.print("\t\t");
-    // Serial.print("tp LB: ");
-    // Serial.println(targetPowerLB);
-    // Serial.println("===============================");
-    // delay(1000);
-    // Serial.print("add RF: ");
-    // Serial.print(additionalPowerRF);
-    // Serial.print("\t\t");
-    // Serial.print("add RB: ");
-    // Serial.print(additionalPowerRB);
-    // Serial.print("\t\t");
-    // Serial.print("add LF: ");
-    // Serial.print(additionalPowerLF);
-    // Serial.print("\t\t");
-    // Serial.print("add LB: ");
-    // Serial.println(additionalPowerLB);
-    // Serial.println("===============================");
-    
-    // ledcWrite(PWM_CHANNEL_MOTOR_4, 5000);
-    // delay(1000);
-    // i -= 100;
-    // ledcWrite(PWM_CHANNEL_MOTOR_4, 4000);
-    // delay(1000);
-
+  #ifdef DEBUG_PRINT
     Serial.print("altitude: ");
     Serial.println(altitude);
     Serial.println("===============================");
@@ -200,4 +195,6 @@ void loop() {
     Serial.println(pidRoll.getDcoefficient());
     Serial.println("===============================");
     delay(100);
+  #endif
+  delay(100);
 }

@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "PID.hpp"
+#include "TFMPlus.h"
 #include "thread.hpp"
 #include "config.hpp"
 #include "ESP32CAN.h"
@@ -28,6 +29,8 @@ PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 
 PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
 PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
 
+extern TFMPlus tfmP; 
+
 
 void timer_interrupt() {
     
@@ -36,20 +39,20 @@ void timer_interrupt() {
 void iBusReadTask(void* pvParameters) {
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
+	const portTickType xPeriod = (IBUS_READ_TASK_HZ / portTICK_RATE_MS);
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
     //xSemaphoreTake(serial_mutex, portMAX_DELAY);
-    static uint16_t chanel[6] = {0, 0, 0, 0, 0, 0};
+    static uint16_t channel[6] = {0, 0, 0, 0, 0, 0};
     for (int i = 0; i < 6; ++i)
     {
       channel_read[i] = iBus.readChannel(i);
     }
     
-    targetRoll = map(channel_read[0], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
-    targetPitch = map(channel_read[1], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
-    targetYaw = map(channel_read[3], 1000, 2000, -TARGET_ANGLE, TARGET_ANGLE);
+    targetRoll = map(channel_read[0], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, -TARGET_ANGLE, TARGET_ANGLE);
+    targetPitch = map(channel_read[1], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, -TARGET_ANGLE, TARGET_ANGLE);
+    targetYaw = map(channel_read[3], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, -TARGET_ANGLE, TARGET_ANGLE);
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
     //xSemaphoreGive(serial_mutex);
   } 
@@ -58,7 +61,7 @@ void iBusReadTask(void* pvParameters) {
 void pidRegulatorTask(void* pvParameters) {
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
+	const portTickType xPeriod = (PID_REGULATOR_TASK_HZ / portTICK_RATE_MS);
 	xLastWakeTime = xTaskGetTickCount();
 
   // PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4, 1.5, 0.1);
@@ -126,7 +129,7 @@ void pidRegulatorTask(void* pvParameters) {
 void iBusLoopTask(void* pvParameters){
 
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 10 / portTICK_RATE_MS );
+	const portTickType xPeriod = (IBUS_LOOP_TASK_HZ / portTICK_RATE_MS);
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
@@ -137,7 +140,7 @@ void iBusLoopTask(void* pvParameters){
 
 void motorsControlTask(void* pvParameters) {
   portTickType xLastWakeTime;
-	const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
+	const portTickType xPeriod = (MOTOR_CONTROL_TASK_HZ / portTICK_RATE_MS);
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
@@ -147,15 +150,19 @@ void motorsControlTask(void* pvParameters) {
       // pidPitch.setPcoefficient(6);
       // pidPitch.setDcoefficient(6);
 
-      powerLB = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
-      powerLF = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
-      powerRB = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
-      powerRF = map(channel_read[2], 1100, 1900, MIN_POWER, MAX_POWER);
+      #ifdef STABILIZE_MODE 
+      
+      powerLB = map(channel_read[2], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, MIN_POWER, MAX_POWER);
+      powerLF = map(channel_read[2], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, MIN_POWER, MAX_POWER);
+      powerRB = map(channel_read[2], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, MIN_POWER, MAX_POWER);
+      powerRF = map(channel_read[2], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, MIN_POWER, MAX_POWER);
 
       ledcWrite(PWM_CHANNEL_MOTOR_1, targetPowerLB); //black usb back   LB  
       ledcWrite(PWM_CHANNEL_MOTOR_2, targetPowerRF); //red usb front    RF
       ledcWrite(PWM_CHANNEL_MOTOR_3, targetPowerRB); // red usb back    RB
       ledcWrite(PWM_CHANNEL_MOTOR_4, targetPowerLF); //black usb front  LF
+      
+      #endif
     }
     else {
       ledcWrite(PWM_CHANNEL_MOTOR_1, MIN_POWER);
@@ -172,32 +179,57 @@ void motorsControlTask(void* pvParameters) {
 }
 
 void canReceiveTask(void* pvParameter) {
-    portTickType xLastWakeTime;
-    const portTickType xPeriod = ( 1 / portTICK_RATE_MS );
-    xLastWakeTime = xTaskGetTickCount();
-    BaseType_t xTaskWokenByReceive = pdFALSE;
-    for (;;) {
-      CAN_frame_t rx_frame;
-      if (xQueueReceiveFromISR(CAN_cfg.rx_queue, &rx_frame, &xTaskWokenByReceive) == pdTRUE) {
-          if (rx_frame.MsgID == 0x11) {
-              memcpy(&roll, &rx_frame.data.u8[0], 4);
-              memcpy(&pitch, &rx_frame.data.u8[4], 4);
-              deg_roll = (roll);
-              deg_pitch = (pitch);
-          }
-          else if (rx_frame.MsgID == 0x13) {
-              memcpy(&yaw, &rx_frame.data.u8[0], 4);
-          }       
-          else if (rx_frame.MsgID == 0x16) {
-              memcpy(&altitude, &rx_frame.data.u8[0], 4);
-          }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-      }
-      if( xTaskWokenByReceive != pdFALSE ) {
-          /* We should switch context so the ISR returns to a different task.
-          NOTE:  How this is done depends on the port you are using.  Check
-          the documentation and examples for your port. */
-          taskYIELD ();
-      }
-      vTaskDelayUntil(&xLastWakeTime, xPeriod);
+  portTickType xLastWakeTime;
+  const portTickType xPeriod = (CAN_RECEIVE_TASK_HZ / portTICK_RATE_MS);
+  xLastWakeTime = xTaskGetTickCount();
+  BaseType_t xTaskWokenByReceive = pdFALSE;
+  for (;;) {
+    CAN_frame_t rx_frame;
+    if (xQueueReceiveFromISR(CAN_cfg.rx_queue, &rx_frame, &xTaskWokenByReceive) == pdTRUE) {
+        if (rx_frame.MsgID == 0x11) {
+            memcpy(&roll, &rx_frame.data.u8[0], sizeof(float));
+            memcpy(&pitch, &rx_frame.data.u8[4], sizeof(float));
+            deg_roll = (roll);
+            deg_pitch = (pitch);
+        }
+        else if (rx_frame.MsgID == 0x13) {
+            memcpy(&yaw, &rx_frame.data.u8[0], sizeof(float));
+        }       
+        else if (rx_frame.MsgID == 0x16) {
+            memcpy(&altitude, &rx_frame.data.u8[0], sizeof(float));
+        }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
     }
+    if( xTaskWokenByReceive != pdFALSE ) {
+        /* We should switch context so the ISR returns to a different task.
+        NOTE:  How this is done depends on the port you are using.  Check
+        the documentation and examples for your port. */
+        taskYIELD ();
+    }
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+  }
+}
+
+void TFMiniReadTask(void* pvParameters) {
+  int16_t tfDist = 0;    // Distance to object in centimeters
+  int16_t tfFlux = 0;    // Strength or quality of return signal
+  int16_t tfTemp = 0;    // Internal temperature of Lidar sensor chip
+  portTickType xLastWakeTime;
+  const portTickType xPeriod = (TFMINI_RECEIVE_TASK_HZ / portTICK_RATE_MS);
+  xLastWakeTime = xTaskGetTickCount();
+  BaseType_t xTaskWokenByReceive = pdFALSE;
+  for (;;) {
+    tfmP.getData(tfDist, tfFlux, tfTemp);
+    Serial.print("Distance: ");
+    Serial.print(tfDist);
+    Serial.print("\t");
+    Serial.print("Flux: ");
+    Serial.print(tfFlux);
+    Serial.print("\t");
+    Serial.print("Temp: ");
+    Serial.print(tfTemp);
+    Serial.print("\t");
+    Serial.println();
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+  }
+ 
 }
