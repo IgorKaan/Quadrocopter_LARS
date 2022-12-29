@@ -127,7 +127,7 @@ int main(void)
   //ms5611_init();
   //Barometer_calibrate();
   MPU9250_calibrate();
-  //HAL_Delay(2000);
+  HAL_Delay(2000);
   MPU9250_Init();
   HAL_Delay(500);
 
