@@ -1,3 +1,0 @@
-../Core/Src/freertos.c:187:6:StartDefaultTask	24	static
-../Core/Src/freertos.c:214:6:StartMPUTask	80	static
-../Core/Src/freertos.c:142:6:MX_FREERTOS_Init	8	static
