@@ -119,8 +119,6 @@ void pidRegulatorTask(void* pvParameters) {
     }
     targetPowerLF = powerLF + additionalPowerLF;
 
-
-
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
   }
 }
@@ -218,17 +216,17 @@ void TFMiniReadTask(void* pvParameters) {
   xLastWakeTime = xTaskGetTickCount();
   BaseType_t xTaskWokenByReceive = pdFALSE;
   for (;;) {
-    tfmP.getData(tfDist, tfFlux, tfTemp);
-    Serial.print("Distance: ");
-    Serial.print(tfDist);
-    Serial.print("\t");
-    Serial.print("Flux: ");
-    Serial.print(tfFlux);
-    Serial.print("\t");
-    Serial.print("Temp: ");
-    Serial.print(tfTemp);
-    Serial.print("\t");
-    Serial.println();
+    // tfmP.getData(tfDist, tfFlux, tfTemp);
+    // Serial.print("Distance: ");
+    // Serial.print(tfDist);
+    // Serial.print("\t");
+    // Serial.print("Flux: ");
+    // Serial.print(tfFlux);
+    // Serial.print("\t");
+    // Serial.print("Temp: ");
+    // Serial.print(tfTemp);
+    // Serial.print("\t");
+    // Serial.println();
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
   }
  

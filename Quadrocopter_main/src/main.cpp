@@ -167,7 +167,7 @@ extern float additionalPowerRF, additionalPowerRB, additionalPowerLF, additional
 int i = 6000;
 
 void loop() {
-  #ifdef DEBUG_PRINT
+  //#ifdef DEBUG_PRINT
     Serial.print("altitude: ");
     Serial.println(altitude);
     Serial.println("===============================");
@@ -195,6 +195,6 @@ void loop() {
     Serial.println(pidRoll.getDcoefficient());
     Serial.println("===============================");
     delay(100);
-  #endif
+  //#endif
   delay(100);
 }

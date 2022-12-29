@@ -124,10 +124,10 @@ int main(void)
 //	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 	//HAL_Delay(500);
   }
-  ms5611_init();
-  Barometer_calibrate();
+  //ms5611_init();
+  //Barometer_calibrate();
   MPU9250_calibrate();
-  HAL_Delay(2000);
+  //HAL_Delay(2000);
   MPU9250_Init();
   HAL_Delay(500);
 
