@@ -89,6 +89,8 @@ float gyroZ_average;
 
 float roll = 0.0, pitch = 0.0, yaw = 0.0;
 
+float auxiliary_roll = 0.0, auxiliary_pitch = 0.0, auxiliary_yaw = 0.0;
+
 uint8_t acc_data[8] = {0,};
 
 uint8_t gyro_data[8] = {0,};
@@ -98,6 +100,8 @@ extern uint8_t _buffer[21];
 extern uint16_t ii, packet_count, fifo_count;
 
 uint32_t can = 0;
+
+uint32_t gyroZ_drift = 0;
 
 extern volatile float relativeAltitudeFiltered;
 //uint8_t buffer[12];
@@ -127,6 +131,7 @@ const osThreadAttr_t MPUTask_attributes = {
 void Barometer_calculate();
 uint32_t MS5611GetTemperature();
 void MPU9250_GetData(int16_t* AccData, int16_t* MagData, int16_t* GyroData);
+void MadgwickFilterRun(float g_x, float g_y, float g_z, float a_x, float a_y, float a_z);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -193,11 +198,11 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	Barometer_calculate();
-	memcpy(can_alt_data, &relativeAltitudeFiltered, 4);
-	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderAltitude, can_alt_data, &TxMailbox) == HAL_OK) {
-		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-	}
+//	Barometer_calculate();
+//	memcpy(can_alt_data, &relativeAltitudeFiltered, 4);
+//	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderAltitude, can_alt_data, &TxMailbox) == HAL_OK) {
+//		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+//	}
 	osDelay(1);
 	vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
@@ -227,11 +232,22 @@ void StartMPUTask(void *argument)
 	accelZ_average = accelZ_filtered;
 	gyroX_average = gyroX_filtered;
 	gyroY_average = gyroY_filtered;
-	gyroZ_average = gyroZ_filtered;
-	imu_filter(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, 0);
+	//gyroZ_average = gyroZ_filtered;
+	if (gyroZ_filtered > 0.03 || gyroZ_filtered < -0.03) {
+		gyroZ_average = gyroZ_filtered;
+		gyroZ_drift++;
+	}
+	else {
+		gyroZ_average = 0;
+	}
+	MadgwickFilterRun(0, 0, gyroZ_average, 0, 0, 0);
+	imu_filter_rp(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, 0);
+
+	imu_filter_y(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, gyroZ_average);
 	yaw = 0;
-	q_est.q4 = 0;
-	eulerAngles(q_est, &roll, &pitch, &yaw);
+	q_est_rp.q4 = 0;
+	eulerAngles(q_est_rp, &roll, &pitch, &yaw);
+	eulerAngles(q_est_y, &auxiliary_roll, &auxiliary_pitch, &auxiliary_yaw);
 //	mass[i] = accelY;
 //	i++;
 //	if (i == 999) {
@@ -262,7 +278,7 @@ void StartMPUTask(void *argument)
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}
 	osDelay(1);
-	memcpy(can_data, &yaw, 4);
+	memcpy(can_data, &auxiliary_yaw, 4);
 	if (HAL_CAN_AddTxMessage(&hcan, &TxHeaderYaw, can_data, &TxMailbox) == HAL_OK) {
 		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	}

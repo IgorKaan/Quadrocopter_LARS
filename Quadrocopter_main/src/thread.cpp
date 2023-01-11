@@ -27,7 +27,7 @@ float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 
 PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
 PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
-PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
+PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 2.0, 1.0, 0);
 
 extern TFMPlus tfmP; 
 
@@ -75,7 +75,7 @@ void pidRegulatorTask(void* pvParameters) {
     // errorYaw = targetYaw - deg_yaw;
     errorRoll = pidRoll.calculate(targetRoll, deg_roll);
     errorPitch = pidPitch.calculate(targetPitch, deg_pitch);
-    errorYaw = pidYaw.calculate(targetYaw, 0);
+    errorYaw = pidYaw.calculate(targetYaw, deg_yaw);
 
     // additionalPowerLB += (pidPitch.calculate(targetPitch, pitch) + pidRoll.calculate(targetRoll, roll));
     // additionalPowerRB += (pidPitch.calculate(targetPitch, pitch) - pidRoll.calculate(targetRoll, roll));
@@ -187,11 +187,12 @@ void canReceiveTask(void* pvParameter) {
         if (rx_frame.MsgID == 0x11) {
             memcpy(&roll, &rx_frame.data.u8[0], sizeof(float));
             memcpy(&pitch, &rx_frame.data.u8[4], sizeof(float));
-            deg_roll = (roll);
-            deg_pitch = (pitch);
+            deg_roll = roll;
+            deg_pitch = pitch;
         }
         else if (rx_frame.MsgID == 0x13) {
             memcpy(&yaw, &rx_frame.data.u8[0], sizeof(float));
+            deg_yaw = yaw;
         }       
         else if (rx_frame.MsgID == 0x16) {
             memcpy(&altitude, &rx_frame.data.u8[0], sizeof(float));

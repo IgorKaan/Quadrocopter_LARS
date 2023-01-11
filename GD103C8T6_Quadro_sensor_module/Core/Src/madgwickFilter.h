@@ -11,6 +11,7 @@
 // Include a hardware specific header file to redefine these predetermined values
 #ifndef DELTA_T
     #define DELTA_T 0.001f // 50Hz sampling frequency // 0.01 = 100 Hz
+	#define DELTA_T_AUX 0.002f // 50Hz sampling frequency // 0.01 = 100 Hz
 #endif
 
 #ifndef PI  
@@ -36,7 +37,9 @@ struct quaternion{
 };
 
 // global variables
-extern struct quaternion q_est;
+extern struct quaternion q_est_rp;
+
+extern struct quaternion q_est_y;
 
 // Multiply two quaternions and return a copy of the result, prod = L * R
 struct quaternion quat_mult (struct quaternion q_L, struct quaternion q_R);
@@ -97,7 +100,10 @@ static inline void printQuaternion (struct quaternion q){
 
 
 // IMU consists of a Gyroscope plus Accelerometer sensor fusion
-void imu_filter(float ax, float ay, float az, float gx, float gy, float gz);
+void imu_filter_rp(float ax, float ay, float az, float gx, float gy, float gz);
+
+// IMU consists of a Gyroscope plus Accelerometer sensor fusion
+void imu_filter_y(float ax, float ay, float az, float gx, float gy, float gz);
 
 // void marg_filter(void); for future
 
