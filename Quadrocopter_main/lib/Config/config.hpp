@@ -15,7 +15,7 @@
 
 //#define ALTITUDE_HOLD_MODE
 
-#define TARGET_ANGLE 10
+#define TARGET_ANGLE 5
 //#define TARGET_ANGLE 15
 
 
