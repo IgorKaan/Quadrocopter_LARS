@@ -60,11 +60,11 @@ float PIDImpl::calculate(float setpoint, float pv)
     // Integral term
     _integral += error * _dt;
     float Iout = _Ki * _integral;
-    if (Iout > _imax) {
-        Iout = _imax;
+    if (_integral > 2) {
+        _integral = 2;
     }
-    if (Iout < _imin) {
-        Iout = _imin;
+    if (_integral < -2) {
+        _integral = -2;
     }
 
     // Derivative term

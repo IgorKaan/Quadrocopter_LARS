@@ -15,7 +15,7 @@
 
 //#define ALTITUDE_HOLD_MODE
 
-#define TARGET_ANGLE 20
+#define TARGET_ANGLE 15
 //#define TARGET_ANGLE 15
 
 
@@ -30,7 +30,7 @@
 #define MAX_JOY_OUTPUT 1900
 
 #define MIN_POWER 3276
-#define MAX_POWER 5000
+#define MAX_POWER 6000
 
 #define POWER_INC 1
 
@@ -38,8 +38,8 @@
 
 #define PID_OUTPUT 3000
 
-#define PID_I_MAX 40
-#define PID_I_MIN -40
+#define PID_I_MAX 50
+#define PID_I_MIN -50
 
 #define PWM_MOTOR_1 25  // D6 X14 LB
 #define PWM_MOTOR_2 32  // D4 X12 RF
