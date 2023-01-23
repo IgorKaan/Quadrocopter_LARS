@@ -6,8 +6,12 @@
 #include "config.hpp"
 #include "ESP32CAN.h"
 #include "Fly_sky_iBus.h"
+#include "Modes.hpp"
 
 uint16_t channel_read[6];
+
+Arm_mode arm_m;
+// TODO: arm_m.set_range(uint16_t ch_val, uint16_t throttle_val);
 
 float altitude;
 float yaw, pitch, roll;
@@ -33,7 +37,7 @@ PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 1
 // PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0);
 // PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0);
 
-extern TFMPlus tfmP; 
+extern TFMPlus tfmP;
 
 
 void timer_interrupt() {
@@ -53,6 +57,7 @@ void iBusReadTask(void* pvParameters) {
     {
       channel_read[i] = iBus.readChannel(i);
     }
+    arm_m.set_value(channel_read[4], channel_read[2], roll, pitch);
     
     targetRoll = map(channel_read[0], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, -TARGET_ANGLE, TARGET_ANGLE);
     targetPitch = map(channel_read[1], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, -TARGET_ANGLE, TARGET_ANGLE);
@@ -151,7 +156,7 @@ void motorsControlTask(void* pvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
-    if ((channel_read[4] > 1900) && (channel_read[5] > 1900)) {
+    if (arm_m.get_value()) {
       //pidRoll.setPcoefficient(map(channel_read[4], 1000, 2000, 1.0, 7.0));
       //pidRoll.setDcoefficient(map(channel_read[5], 1000, 2000, 1, 4));
       // pidPitch.setPcoefficient(6);

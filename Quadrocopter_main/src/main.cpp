@@ -8,6 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <ESP32CAN.h>
+#include "Modes.hpp"
 
 void timer_interrupt();
 void iBusReadTask(void* pvParameters);
@@ -49,7 +50,10 @@ constexpr gpio_num_t CAN_RX_PIN = GPIO_NUM_19;
 
 TFMPlus tfmP; 
 
+extern Arm_mode arm_m;
+
 void setup() {
+  arm_m.set_range(1500,2100);
   // Светодиоды
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
