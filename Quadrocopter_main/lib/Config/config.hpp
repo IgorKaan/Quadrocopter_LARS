@@ -41,9 +41,14 @@
 #define PID_I_MAX 40
 #define PID_I_MIN -40
 
-#define PWM_MOTOR_1 25  // D6 X14 LB
-#define PWM_MOTOR_2 32  // D4 X12 RF
-#define PWM_MOTOR_3 33  // D5 X13 RB
+// #define PWM_MOTOR_1 25  // D6 X14 LB
+// #define PWM_MOTOR_2 32  // D4 X12 RF
+// #define PWM_MOTOR_3 33  // D5 X13 RB
+// #define PWM_MOTOR_4 26  // D3 X8  LF
+
+#define PWM_MOTOR_1 32  // D6 X14 LB
+#define PWM_MOTOR_2 25  // D4 X12 RF
+#define PWM_MOTOR_3 13  // D5 X13 RB
 #define PWM_MOTOR_4 26  // D3 X8  LF
 
 #define PWM_CHANNEL_MOTOR_1  0

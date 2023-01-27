@@ -151,6 +151,7 @@ void motorsControlTask(void* pvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
   for(;;) {
+
     if ((channel_read[4] > 1900) && (channel_read[5] > 1900)) {
       //pidRoll.setPcoefficient(map(channel_read[4], 1000, 2000, 1.0, 7.0));
       //pidRoll.setDcoefficient(map(channel_read[5], 1000, 2000, 1, 4));
@@ -176,6 +177,10 @@ void motorsControlTask(void* pvParameters) {
       ledcWrite(PWM_CHANNEL_MOTOR_2, MIN_POWER);
       ledcWrite(PWM_CHANNEL_MOTOR_3, MIN_POWER);
       ledcWrite(PWM_CHANNEL_MOTOR_4, MIN_POWER);
+      // ledcWrite(PWM_CHANNEL_MOTOR_1, 3400); // RF
+      // ledcWrite(PWM_CHANNEL_MOTOR_2, 3400); // LF
+      // ledcWrite(PWM_CHANNEL_MOTOR_3, 3400); // RB
+      // ledcWrite(PWM_CHANNEL_MOTOR_4, 3400); // LB
       targetPowerLB = MIN_POWER;
       targetPowerRF = MIN_POWER;
       targetPowerRB = MIN_POWER;
