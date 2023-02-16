@@ -106,7 +106,7 @@ void setup() {
   if(tfmP.sendCommand(SOFT_RESET, 0)) {
     Serial.println("TFMini soft reset... ");
   }
-  delay(1000);
+  //delay(1000);
   if (tfmP.sendCommand(GET_FIRMWARE_VERSION, 0)) {
     Serial.println("TFMini version: ");
     Serial.print(tfmP.version[0]); // print three single numbers
@@ -157,7 +157,7 @@ extern PIDImpl pidRoll;
 extern PIDImpl pidPitch;
 extern float deg_pitch, deg_roll;
 extern float yaw, pitch, roll;
-extern float altitude;
+extern float altitude, powerLB;
 extern float targetRoll, targetPitch, targetYaw;
 extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 extern float errorRoll, errorPitch, errorYaw;
@@ -191,7 +191,7 @@ void loop() {
     Serial.println(errorYaw);
     Serial.println("===============================");
     Serial.print("P koeff: ");
-    Serial.print(pidRoll.getPcoefficient());
+    Serial.print(powerLB);
     Serial.print("\t\t");
     Serial.print("D koeff: ");
     Serial.println(pidRoll.getDcoefficient());

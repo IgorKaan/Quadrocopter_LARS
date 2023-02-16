@@ -4,7 +4,7 @@ Fly_sky_iBus iBus;
 
 void Fly_sky_iBus::begin(HardwareSerial& serial)
 {
-    serial.begin(115200, SERIAL_8N1, 34, 16); //RX TX
+    serial.begin(115200, SERIAL_8N1, 21, 16); //RX TX
     begin((Stream&)serial);
 }
 

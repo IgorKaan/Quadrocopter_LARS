@@ -21,9 +21,9 @@ float powerLF = MIN_POWER;
 float powerLB = MIN_POWER;
 float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 
-PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0.5);
-PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0.5);
-PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.5, 1.0, 0.5);
+PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0.0);
+PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0.0);
+PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 6.5, 2.0, 0.0);
 
 // PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
 // PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
@@ -166,9 +166,9 @@ void motorsControlTask(void* pvParameters) {
       powerRF = map(channel_read[2], MIN_JOY_OUTPUT, MAX_JOY_OUTPUT, MIN_POWER, MAX_POWER);
 
       ledcWrite(PWM_CHANNEL_MOTOR_1, targetPowerLB); //black usb back   LB  
-      ledcWrite(PWM_CHANNEL_MOTOR_2, targetPowerRF); //red usb front    RF
-      ledcWrite(PWM_CHANNEL_MOTOR_3, targetPowerRB); // red usb back    RB
-      ledcWrite(PWM_CHANNEL_MOTOR_4, targetPowerLF); //black usb front  LF
+      ledcWrite(PWM_CHANNEL_MOTOR_3, targetPowerRF); //red usb front    RF
+      ledcWrite(PWM_CHANNEL_MOTOR_4, targetPowerRB); // red usb back    RB
+      ledcWrite(PWM_CHANNEL_MOTOR_2, targetPowerLF); //black usb front  LF
       
       #endif
     }
