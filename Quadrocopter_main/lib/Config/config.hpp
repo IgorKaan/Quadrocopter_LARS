@@ -51,7 +51,7 @@
 
 #define PWM_MOTOR_1 25  // 25 PWM1 X3 LB
 #define PWM_MOTOR_2 32  // 32 PWM3 X5 LF
-#define PWM_MOTOR_3 13  // 27 PWM5 X7 RF     
+#define PWM_MOTOR_3 13  // 27 PWM5 X7 RF   13  
 #define PWM_MOTOR_4 26  // 26 PWM6 X8 RB
 
 #define PWM_CHANNEL_MOTOR_1  0

@@ -6,6 +6,10 @@
 #include "config.hpp"
 #include "ESP32CAN.h"
 #include "Fly_sky_iBus.h"
+//  #include "Chebishev.h"
+#include "Chebishev.h"
+#include <LowPassFilter.h>
+#include <PT1.h>
 extern "C" {
   #include "madgwickFilter.h"
 }
@@ -28,77 +32,31 @@ Biquad *nFilterGyroZ = new Biquad();
 Biquad *nFilterAccelX = new Biquad();
 Biquad *nFilterAccelY = new Biquad();
 Biquad *nFilterAccelZ = new Biquad();
-
-float gxPT1, gyPT1, gzPT1, axPT1, ayPT1, azPT1;
-
-float accelXRaw;
-
-float K = 0.9;
-
-float pt1FilterApplyGX(float input)
-{
-  gxPT1 = gxPT1 + K * (input - gxPT1);
-  return gxPT1;
-}
-
-float pt1FilterApplyGY(float input)
-{
-  gyPT1 = gyPT1 + K * (input - gyPT1);
-  return gyPT1;
-}
-
-float pt1FilterApplyGZ(float input)
-{
-  gzPT1 = gzPT1 + K * (input - gzPT1);
-  return gzPT1;
-}
-
-float pt1FilterApplyAX(float input)
-{
-  axPT1 = axPT1 + K * (input - axPT1);
-  return axPT1;
-}
-
-float pt1FilterApplyAY(float input)
-{
-  ayPT1 = ayPT1 + K * (input - ayPT1);
-  return ayPT1;
-}
-
-float pt1FilterApplyAZ(float input)
-{
-  azPT1 = azPT1 + K * (input - azPT1);
-  return azPT1;
-}
-
 float altitude;
-float yaw, pitch, roll;
+float yaw, pitch, roll, TrueYaw, ErrorYaw, SumErrorsYaw, SumRiseErrorYaw, RiseErrorYaw, OldSumErrorsYaw;
 float deg_yaw, deg_pitch, deg_roll;
 float gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
-
+extern int c;
 float ngyroX, ngyroY, ngyroZ, naccelX, naccelY, naccelZ;
-
-float nPTgyroX, nPTgyroY, nPTgyroZ, nPTaccelX, nPTaccelY, nPTaccelZ, lPTgyroX, lPTgyroY, lPTgyroZ, lPTaccelX, lPTaccelY, lPTaccelZ;
-
+float BiquadNotchAccelX, BiquadNotchAccelY, BiquadNotchAccelZ, BiquadNotchGyroX, BiquadNotchGyroY, BiquadNotchGyroZ,  BiquadLowPassGyroX,  BiquadLowPassGyroY,  BiquadLowPassGyroZ, BiquadLowPassAccelX, BiquadLowPassAccelY, BiquadLowPassAccelZ;
+float SumErrorsGyroX, SumErrorsGyroY, SumErrorsGyroZ, ErrorGyroX, ErrorGyroY, ErrorGyroZ;
+float SumErrorsAccelX, SumErrorsAccelY, SumErrorsAccelZ, ErrorAccelX, ErrorAccelY, ErrorAccelZ;
 float targetRoll, targetPitch, targetYaw;
 float errorRoll, errorPitch, errorYaw;
 float additionalPowerRF, additionalPowerRB, additionalPowerLF, additionalPowerLB;
+float ChebishevGyroX, ChebishevGyroY, ChebishevGyroZ, ChebishevAccelX, ChebishevAccelY, ChebishevAccelZ;
+float LowPassGyroX, LowPassGyroY, LowPassGyroZ, LowPassAccelX, LowPassAccelY, LowPassAccelZ;
+float PT1GyroX, PT1GyroY, PT1GyroZ, PT1AccelX, PT1AccelY, PT1AccelZ;
 float powerRF = MIN_POWER;
 float powerRB = MIN_POWER;
 float powerLF = MIN_POWER;
 float powerLB = MIN_POWER;
 float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
+float TrueGyroX, TrueGyroY, TrueGyroZ, TrueAccelX, TrueAccelY, TrueAccelZ;
 
 PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.5, 1.06, 1.5);        //1.5, 0.7, 1.5
 PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.5, 1.06, 1.5);       //1.5, 0.7, 1.5
 PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 5, 0.5, 5);        //4.5
-// PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
-// PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
-// PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.0, 2.0, 0);
-
-// PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0);
-// PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0);
-// PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0);
 
 extern TFMPlus tfmP; 
 
@@ -127,12 +85,12 @@ void UARTReadTask(void* pvParameters) {
   const portTickType xPeriod = (UART_RECEIVE_TASK_HZ / portTICK_RATE_MS);
   xLastWakeTime = xTaskGetTickCount();
   BaseType_t xTaskWokenByReceive = pdFALSE;
-  lpFilterGyroX->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
-  lpFilterGyroY->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
-  lpFilterGyroZ->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
-  lpFilterAccelX->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
-  lpFilterAccelY->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
-  lpFilterAccelZ->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+  lpFilterGyroX->setBiquad(bq_type_lowpass, 0.07, 0.707, 0);
+  lpFilterGyroY->setBiquad(bq_type_lowpass, 0.07, 0.707, 0);
+  lpFilterGyroZ->setBiquad(bq_type_lowpass, 0.07, 0.707, 0);
+  lpFilterAccelX->setBiquad(bq_type_lowpass, 0.07, 0.707, 0);
+  lpFilterAccelY->setBiquad(bq_type_lowpass, 0.07, 0.707, 0);
+  lpFilterAccelZ->setBiquad(bq_type_lowpass, 0.07, 0.707, 0);
 
   nFilterGyroX -> setBiquad(bq_type_notch, 0.5, 2, 0);  // 0.5, 2, 0
   nFilterGyroY -> setBiquad(bq_type_notch, 0.5, 2, 0);
@@ -159,57 +117,82 @@ void UARTReadTask(void* pvParameters) {
           memcpy(&f5, &buffer[17], sizeof(float));
           memcpy(&f6, &buffer[21], sizeof(float));
         }
-        // memcpy(&f1, &buffer[0], sizeof(float));
-        // memcpy(&f2, &buffer[4], sizeof(float));
-        // memcpy(&f3, &buffer[8], sizeof(float));
-        // memcpy(&f4, &buffer[12], sizeof(float));
-        // memcpy(&f5, &buffer[16], sizeof(float));
-        // memcpy(&f6, &buffer[20], sizeof(float));
-       // accelXRaw = f1;+
+//БИКВАДРАТНЫЙ ФИЛЬТР НИЖНИХ ЧАСТОТ
+      BiquadLowPassGyroX = lpFilterGyroX ->process(f4);
+      BiquadLowPassGyroY = lpFilterGyroY ->process(f5);
+      BiquadLowPassGyroZ = lpFilterGyroZ ->process(f6);
+      BiquadLowPassAccelX = lpFilterAccelX ->process(f1);
+      BiquadLowPassAccelY = lpFilterAccelY ->process(f2);
+      BiquadLowPassAccelZ = lpFilterAccelZ ->process(f3); 
+// ФИЛЬТР НИЖНИХ ЧАСТОТ ЧЕБЫШЕВА
+/*ChebishevGyroX = ChebishevMathGyroX(f4);    
+ChebishevGyroY = ChebishevMathGyroY(f5);
+ChebishevGyroZ = ChebishevMathGyroZ(f6);
+ChebishevAccelX = ChebishevMathAccelX(f1);
+ChebishevAccelY = ChebishevMathAccelY(f2);
+ChebishevAccelZ = ChebishevMathAccelZ(f3);*/
+// БОМЖ-ФИЛЬТР НИЖНИХ ЧАСТОТ:
+/*LowPassGyroX = LowPassMathGX(f4);
+LowPassGyroY = LowPassMathGY(f5);
+LowPassGyroZ = LowPassMathGZ(f6);
+LowPassAccelX = LowPassMathAX(f1);
+LowPassAccelY = LowPassMathAY(f2);
+LowPassAccelZ = LowPassMathAZ(f3); */
+// PT1-ФИЛЬТР НИЖНИХ ЧАСТОТ:
+/*PT1GyroX = pt1FilterApplyGX(f4);
+PT1GyroY = pt1FilterApplyGY(f5);
+PT1GyroZ = pt1FilterApplyGZ(f6);
+PT1AccelX = pt1FilterApplyAX(f1);
+PT1AccelY = pt1FilterApplyAY(f2);
+PT1AccelZ = pt1FilterApplyAZ(f3);*/
+// БИКВАДРАТНЫЙ РЕЖЕКТОРНЫЙ ФИЛЬТР ДЛЯ БИКВАДРАТНОГО ФИЛЬТРА НИЖНИХ ЧАСТОТ:
+      BiquadNotchGyroX = nFilterGyroX ->process(BiquadLowPassGyroX);
+      BiquadNotchGyroY = nFilterGyroY ->process(BiquadLowPassGyroY);
+      BiquadNotchGyroZ = nFilterGyroZ ->process(BiquadLowPassGyroZ);
+      BiquadNotchAccelX = nFilterAccelX ->process(BiquadLowPassAccelX);
+      BiquadNotchAccelY = nFilterAccelY ->process(BiquadLowPassAccelY);
+      BiquadNotchAccelZ = nFilterAccelZ ->process(BiquadLowPassAccelZ); 
+// БИКВАДРАТНЫЙ РЕЖЕКТОРНЫЙ ФИЛЬТР ДЛЯ ФИЛЬТРА НИЖНИХ ЧАСТОТ ЧЕБЫШЕВА:
+     /* BiquadNotchGyroX = nFilterGyroX ->process(ChebishevGyroX);
+      BiquadNotchGyroY = nFilterGyroY ->process(ChebishevGyroY);
+      BiquadNotchGyroZ = nFilterGyroZ ->process(ChebishevGyroZ);
+      BiquadNotchAccelX = nFilterAccelX ->process(ChebishevAccelX);
+      BiquadNotchAccelY = nFilterAccelY ->process(ChebishevAccelY);
+      BiquadNotchAccelZ = nFilterAccelZ ->process(ChebishevAccelZ); */
+// БИКВАДРАТНЫЙ РЕЖЕКТОРНЫЙ ФИЛЬТР ДЛЯ ОБЫЧНОГО ФИЛЬТРА НИЖНИХ ЧАСТОТ:
+     /* BiquadNotchGyroX = nFilterGyroX ->process(LowPassGyroX);
+      BiquadNotchGyroY = nFilterGyroY ->process(LowPassGyroY);
+      BiquadNotchGyroZ = nFilterGyroZ ->process(LowPassGyroZ);
+      BiquadNotchAccelX = nFilterAccelX ->process(LowPassAccelX);
+      BiquadNotchAccelY = nFilterAccelY ->process(LowPassAccelY);
+      BiquadNotchAccelZ = nFilterAccelZ ->process(LowPassAccelZ); */
+// БИКВАДРАТНЫЙ РЕЖЕКТОРНЫЙ ФИЛЬТР ДЛЯ PT-1 ФИЛЬТРА НИЖНИХ ЧАСТОТ:
+     /* BiquadNotchGyroX = nFilterGyroX ->process(PT1GyroX);
+      BiquadNotchGyroY = nFilterGyroY ->process(PT1GyroY);
+      BiquadNotchGyroZ = nFilterGyroZ ->process(PT1GyroZ);
+      BiquadNotchAccelX = nFilterAccelX ->process(PT1AccelX);
+      BiquadNotchAccelY = nFilterAccelY ->process(PT1AccelY);
+      BiquadNotchAccelZ = nFilterAccelZ ->process(PT1AccelZ); */
+// КОРРЕКТИРОВКА ДАННЫХ С УЧЕТОМ КАЛИБРОВКИ:
+      TrueGyroX = BiquadNotchGyroX - ErrorGyroX;
+      TrueGyroY = BiquadNotchGyroY - ErrorGyroY;
+      TrueGyroZ = BiquadNotchGyroZ - ErrorGyroZ;
+      TrueAccelX = BiquadNotchAccelX - ErrorAccelX; 
+      TrueAccelY = BiquadNotchAccelY - ErrorAccelY;
+      TrueAccelZ = BiquadNotchAccelZ - ErrorAccelZ; 
 
-       //gyroX = lpFilterGyroX -> process(f4);
-       // gyroY = lpFilterGyroY -> process(f5);
-        // gyroZ = lpFilterGyroZ -> process(f6);
-       // accelX = lpFilterAccelX -> process(f1);
-       // accelY = lpFilterAccelY -> process(f2);
-       //accelZ = lpFilterAccelZ -> process(f3);
-        // nPTgyroX = pt1FilterApplyGX(gyroX);
-        // nPTgyroY = pt1FilterApplyGY(gyroY);
-        // nPTgyroZ = pt1FilterApplyGZ(gyroZ);
-        // nPTaccelX = pt1FilterApplyAX(accelX);
-        // nPTaccelY = pt1FilterApplyAY(accelY);
-        // nPTaccelZ = pt1FilterApplyAZ(accelZ);
-
-      lPTgyroX = lpFilterGyroX ->process(f4);
-      lPTgyroY = lpFilterGyroY ->process(f5);
-      lPTgyroZ = lpFilterGyroZ ->process(f6);
-      lPTaccelX = lpFilterAccelX ->process(f1);
-      lPTaccelY = lpFilterAccelY ->process(f2);
-      lPTaccelZ = lpFilterAccelZ ->process(f3);
-      nPTgyroX = nFilterGyroX ->process(lPTgyroX);
-      nPTgyroY = nFilterGyroY ->process(lPTgyroY);
-      nPTgyroZ = nFilterGyroZ ->process(lPTgyroZ);
-      nPTaccelX = nFilterAccelX ->process(lPTaccelX);
-      nPTaccelY = nFilterAccelY ->process(lPTaccelY);
-      nPTaccelZ = nFilterAccelZ ->process(lPTaccelZ);
-
-
-      // nPTgyroX = lpFilterGyroX -> process(f4);
-      //  nPTgyroY = lpFilterGyroY -> process(f5);
-      // nPTgyroZ = lpFilterGyroZ -> process(f6);
-      //nPTaccelX = lpFilterAccelX -> process(f1);
-       //nPTaccelY = lpFilterAccelY -> process(f2);
-       // nPTaccelZ = lpFilterAccelZ -> process(f3);
-
-        imu_filter_rp(-nPTaccelX, -nPTaccelY, -nPTaccelZ, nPTgyroX, nPTgyroY, 0); //Данил. Внедрил nPTgyroZ
-
-        //imu_filter_y(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, gyroZ_average);
-        yaw = 0;
-        q_est_rp.q4 = 0;
+        imu_filter_rp(-TrueAccelX, -TrueAccelY, -TrueAccelZ, TrueGyroX, TrueGyroY, TrueGyroZ);
+        //TrueYaw = yaw - ErrorYaw;
         eulerAngles(q_est_rp, &roll, &pitch, &yaw);
         deg_roll = roll;
         deg_pitch = pitch;
+       // TrueYaw = yaw - ErrorYaw;
         deg_yaw = yaw;
+        //if(c == 1000)
+       // {
+       // delay(5);
+      //  ErrorYaw += RiseErrorYaw;
+      //  }
       }
     }
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
@@ -249,7 +232,7 @@ void pidRegulatorTask(void* pvParameters) {
   // PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
 
   for(;;) {
-    // xSemaphoreTake(param_mutex, portMAX_DELAY);
+    //xSemaphoreTake(param_mutex, portMAX_DELAY);
     // errorRoll = targetRoll - deg_roll;
     // errorPitch = targetPitch - deg_pitch;
     // errorYaw = targetYaw - deg_yaw;

@@ -11,9 +11,28 @@
 #include <TroykaIMU.h>
 #include "Biquad.h"
 #include <string.h>
+#include <Chebishev.h>
+#include <GoodMorningCopter.h>
 // множитель фильтра
 #define BETA 0.22f
- 
+extern PIDImpl pidRoll;
+extern PIDImpl pidPitch;
+extern float deg_pitch, deg_roll;
+extern float yaw, pitch, roll, TrueYaw, SumErrorsYaw, OldSumErrorsYaw, ErrorYaw, SumRiseErrorYaw, RiseErrorYaw;
+extern float altitude, powerLB, powerLF, powerRB, powerRF;
+extern float targetRoll, targetPitch, targetYaw;
+extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
+extern float errorRoll, errorPitch, errorYaw;
+extern float additionalPowerRF, additionalPowerRB, additionalPowerLF, additionalPowerLB;
+extern float gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
+extern float BiquadNotchAccelX, BiquadNotchAccelY, BiquadNotchAccelZ, BiquadNotchGyroX, BiquadNotchGyroY, BiquadNotchGyroZ,  BiquadLowPassGyroX,  BiquadLowPassGyroY,  BiquadLowPassGyroZ, BiquadLowPassAccelX, BiquadLowPassAccelY, BiquadLowPassAccelZ;;
+extern float f1, f2, f3, f4, f5, f6; 
+extern float SumErrorsGyroX, SumErrorsGyroY, SumErrorsGyroZ, ErrorGyroX, ErrorGyroY, ErrorGyroZ;
+extern float SumErrorsAccelX, SumErrorsAccelY, SumErrorsAccelZ, ErrorAccelX, ErrorAccelY, ErrorAccelZ;
+extern float ChebishevGyroX, ChebishevGyroY, ChebishevGyroZ, ChebishevAccelX, ChebishevAccelY, ChebishevAccelZ;
+extern float LowPassGyroX, LowPassGyroY, LowPassGyroZ, LowPassAccelX, LowPassAccelY, LowPassAccelZ;
+extern float PT1GyroX, PT1GyroY, PT1GyroZ, PT1AccelX, PT1AccelY, PT1AccelZ;
+float PercentPowerRF, PercentPowerRB, PercentPowerLF, PercentPowerLB, PowerToPercent;
 // создаём объект для фильтра Madgwick
 Madgwick filter;
 
@@ -26,7 +45,6 @@ void canReceiveTask(void* pvParameters);
 void TFMiniReadTask(void* pvParameters);
 void pidRegulatorTask(void* pvParameters);
 void motorsControlTask(void* pvParameters);
-
 
 #define TIMER_NUMBER 0
 // Частота ESP32 = 80МГц = 80.000.000Гц, при
@@ -61,11 +79,19 @@ constexpr gpio_num_t CAN_RX_PIN = GPIO_NUM_19;
 
 
 void setup() {
+  WakeUp();
+ // ReadyToCalibration();
   // Светодиоды
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   // Светодиоды
-
+  //float x1 = Serial2.read();
+ // float x2 = Serial2.read();
+ // float x3 = Serial2.read();
+// float x4 = Serial2.read();
+//  float x5 = Serial2.read();
+//  float x6 = Serial2.read();
+ //ReadyToCalibration();
   // Инициализация двигателей
   pinMode(PWM_MOTOR_1, OUTPUT);
   pinMode(PWM_MOTOR_2, OUTPUT);
@@ -159,6 +185,34 @@ void setup() {
   // ESP32Can.CANInit();
   // Инициализация CAN шины
 
+  BaseType_t t7 = xTaskCreatePinnedToCore(UARTReadTask, "Task7", 30000, NULL, 1, &Task7, 0);
+  delay(3000);
+  //ReadyToCalibration();
+  int i = 0;
+  for( i; i < 1000; i++)
+  //while(millis() < 10000)
+  {
+  SumErrorsGyroX+=/*f4*/ BiquadNotchGyroX - 0;
+  SumErrorsGyroY+=/*f5*/ BiquadNotchGyroY - 0;
+  SumErrorsGyroZ+=/*f6*/ BiquadNotchGyroZ - 0;
+  SumErrorsAccelX += /*f1*/ BiquadNotchAccelX - 0;
+  SumErrorsAccelY += /*f2*/ BiquadNotchAccelY - 0;
+  SumErrorsAccelZ += /*f3*/ BiquadNotchAccelZ + 9.81;
+  //i++;
+  delay(5);
+  }
+  ErrorGyroX = SumErrorsGyroX / i;
+  ErrorGyroY = SumErrorsGyroY / i;
+  ErrorGyroZ = SumErrorsGyroZ / i;
+  ErrorAccelX = SumErrorsAccelX / i;
+  ErrorAccelY = SumErrorsAccelY / i;
+  ErrorAccelZ = SumErrorsAccelZ / i;
+  //PowerToPercent = (MAX_POWER - MIN_POWER) / 100;
+  //Serial.println(x);
+  //Serial.println(SumRiseErrorYaw);
+  //Serial.println(RiseErrorYaw);
+  //EndCalibration();
+
   // Создание тасков
   BaseType_t t1 = xTaskCreatePinnedToCore(iBusReadTask, "Task1", 5000, NULL, 1, &Task1, 1);
   BaseType_t t2 = xTaskCreatePinnedToCore(iBusLoopTask, "Task2", 5000, NULL, 1, &Task2, 1);
@@ -166,27 +220,13 @@ void setup() {
   BaseType_t t4 = xTaskCreatePinnedToCore(canReceiveTask, "Task4", 30000, NULL, 1, &Task4, 1);
   BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 1);
   BaseType_t t6 = xTaskCreatePinnedToCore(TFMiniReadTask, "Task6", 5000, NULL, 1, &Task6, 0);
-  BaseType_t t7 = xTaskCreatePinnedToCore(UARTReadTask, "Task7", 30000, NULL, 1, &Task7, 0);
+  
   BaseType_t t8 = xTaskCreatePinnedToCore(filterTask, "Task8", 30000, NULL, 1, &Task8, 0);
   // Создание тасков
-
- 
-
 }
 
-extern PIDImpl pidRoll;
-extern PIDImpl pidPitch;
-extern float deg_pitch, deg_roll;
-extern float yaw, pitch, roll;
-extern float altitude, powerLB, powerLF, powerRB, powerRF;
-extern float targetRoll, targetPitch, targetYaw;
-extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
-extern float errorRoll, errorPitch, errorYaw;
-extern float additionalPowerRF, additionalPowerRB, additionalPowerLF, additionalPowerLB;
-extern float gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
-extern float nPTgyroX, nPTgyroY, nPTgyroZ, nPTaccelX, nPTaccelY, nPTaccelZ, lPTgyroX, lPTgyroY, lPTgyroZ, lPTaccelX, lPTaccelY, lPTaccelZ;
-extern float accelXRaw;
-extern float f1, f2, f3, f4, f5, f6;
+
+
 
 
 
@@ -232,6 +272,10 @@ void loop() {
   
   // Serial.println();
   //#ifdef DEBUG_PRINT
+ /*PercentPowerLB = (powerLB - MIN_POWER) / PowerToPercent;
+ PercentPowerLF = (powerLF - MIN_POWER) / PowerToPercent;
+ PercentPowerRB = (powerRB - MIN_POWER) / PowerToPercent;
+ PercentPowerRF = (powerRF - MIN_POWER) / PowerToPercent; */
    Serial.print(f4);
    Serial.print(" ");
    Serial.print(f5);
@@ -243,38 +287,82 @@ void loop() {
    Serial.print(f2);
    Serial.print(" ");
    Serial.print(f3);
+   Serial.print(" "); 
+   Serial.print(BiquadLowPassGyroX);
    Serial.print(" ");
-   Serial.print(lPTgyroX);
+   Serial.print(BiquadLowPassGyroY);
    Serial.print(" ");
-   Serial.print(lPTgyroY);
+   Serial.print(BiquadLowPassGyroZ);
    Serial.print(" ");
-   Serial.print(lPTgyroZ);
+   Serial.print(BiquadLowPassAccelX);
    Serial.print(" ");
-   Serial.print(lPTaccelX);
+   Serial.print(BiquadLowPassAccelY);
    Serial.print(" ");
-   Serial.print(lPTaccelY);
+   Serial.print(BiquadLowPassAccelZ);
    Serial.print(" ");
-   Serial.print(lPTaccelZ);
+   Serial.print(BiquadNotchGyroX);
    Serial.print(" ");
-   Serial.print(nPTgyroX);
+   Serial.print(BiquadNotchGyroY);
    Serial.print(" ");
-   Serial.print(nPTgyroY);
+   Serial.print(BiquadNotchGyroZ);
    Serial.print(" ");
-   Serial.print(nPTgyroZ);
+   Serial.print(BiquadNotchAccelX);
    Serial.print(" ");
-   Serial.print(nPTaccelX);
+   Serial.print(BiquadNotchAccelY);
    Serial.print(" ");
-   Serial.print(nPTaccelY);
-   Serial.print(" ");
-   Serial.print(nPTaccelZ);
-   Serial.print(" ");
+   Serial.print(BiquadNotchAccelZ);
+   Serial.print(" "); 
    Serial.print(deg_roll);
    Serial.print(" ");
    Serial.print(deg_pitch);
    Serial.print(" ");
    Serial.print(yaw);
    Serial.print(" ");
-   Serial.println(millis());
+   Serial.print(PercentPowerLF);
+   Serial.print(" ");
+   Serial.print(PercentPowerRF);
+   Serial.print(" ");
+   Serial.print(PercentPowerLB);
+   Serial.print(" ");
+   Serial.print(PercentPowerRB);
+   Serial.print(" "); 
+   Serial.print(ChebishevGyroX);
+   Serial.print(" ");
+   Serial.print(ChebishevGyroY);
+   Serial.print(" ");
+   Serial.print(ChebishevGyroZ);
+   Serial.print(" ");
+   Serial.print(ChebishevAccelX);
+   Serial.print(" ");
+   Serial.print(ChebishevAccelY); 
+   Serial.print(" ");
+   Serial.print(ChebishevAccelZ); 
+   Serial.print(" ");
+   Serial.print(LowPassGyroX);
+   Serial.print(" ");
+   Serial.print(LowPassGyroY);
+   Serial.print(" ");
+   Serial.print(LowPassGyroZ);
+   Serial.print(" ");
+   Serial.print(LowPassAccelX);
+   Serial.print(" ");
+   Serial.print(LowPassAccelY); 
+   Serial.print(" ");
+   Serial.print(LowPassAccelZ); 
+   Serial.print(" ");
+   Serial.print(PT1GyroX);
+   Serial.print(" ");
+   Serial.print(PT1GyroY);
+   Serial.print(" ");
+   Serial.print(PT1GyroZ);
+   Serial.print(" ");
+   Serial.print(PT1AccelX);
+   Serial.print(" ");
+   Serial.print(PT1AccelY); 
+   Serial.print(" ");
+   Serial.print(PT1AccelZ); 
+   Serial.print(" ");
+   Serial.println(millis()); 
    // Serial.print(accelX, 5);
    // Serial.print("\t\t");
    // Serial.print("pitch: ");
@@ -293,5 +381,45 @@ void loop() {
    // Serial.println(gyroZ);
    // Serial.println("===============================");
   //#endif
- 
-}
+
+  //GitLab №1
+ /*  Serial.print(f4);
+   Serial.print(" ");
+   Serial.print(f5);
+   Serial.print(" ");
+   Serial.print(f6);
+   Serial.print(" ");
+   Serial.print(f1);
+   Serial.print(" ");
+   Serial.print(f2);
+   Serial.print(" ");
+   Serial.print(f3);
+   Serial.print(" ");
+   Serial.print(nPTgyroX);
+   Serial.print(" ");
+   Serial.print(nPTgyroY);
+   Serial.print(" ");
+   Serial.print(nPTgyroZ);
+   Serial.print(" ");
+   Serial.print(nPTaccelX);
+   Serial.print(" ");
+   Serial.print(nPTaccelY);
+   Serial.print(" ");
+   Serial.print(nPTaccelZ);
+   Serial.print(" ");
+   Serial.print(deg_roll); 
+   Serial.print(" ");
+   Serial.print(yaw);
+   Serial.print(" ");
+   Serial.print(TrueYaw);
+   Serial.print(" ");
+   Serial.print(PercentPowerLF);
+   Serial.print(" ");
+   Serial.print(PercentPowerRF);
+   Serial.print(" ");
+   Serial.print(PercentPowerLB);
+   Serial.print(" ");
+   Serial.print(PercentPowerRB); */
+
+   
+} 
