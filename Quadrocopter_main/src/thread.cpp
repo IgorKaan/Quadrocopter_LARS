@@ -31,6 +31,8 @@ Biquad *nFilterAccelZ = new Biquad();
 
 float gxPT1, gyPT1, gzPT1, axPT1, ayPT1, azPT1;
 
+float accelXRaw;
+
 float K = 0.9;
 
 float pt1FilterApplyGX(float input)
@@ -76,7 +78,7 @@ float gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
 
 float ngyroX, ngyroY, ngyroZ, naccelX, naccelY, naccelZ;
 
-float nPTgyroX, nPTgyroY, nPTgyroZ, nPTaccelX, nPTaccelY, nPTaccelZ;
+float nPTgyroX, nPTgyroY, nPTgyroZ, nPTaccelX, nPTaccelY, nPTaccelZ, lPTgyroX, lPTgyroY, lPTgyroZ, lPTaccelX, lPTaccelY, lPTaccelZ;
 
 float targetRoll, targetPitch, targetYaw;
 float errorRoll, errorPitch, errorYaw;
@@ -87,10 +89,9 @@ float powerLF = MIN_POWER;
 float powerLB = MIN_POWER;
 float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 
-PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0.5);
-PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3.5, 2.0, 0.5);
-PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 0.0, 0.0);
-
+PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.5, 1.06, 1.5);        //1.5, 0.7, 1.5
+PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.5, 1.06, 1.5);       //1.5, 0.7, 1.5
+PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 5, 0.5, 5);        //4.5
 // PIDImpl pidRoll(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
 // PIDImpl pidPitch(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 2.0, 0);
 // PIDImpl pidYaw(0.001, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.0, 2.0, 0);
@@ -109,18 +110,39 @@ void timer_interrupt() {
 uint8_t buffer[27] {0,};
 float f1, f2, f3, f4, f5, f6;
 
+void filterTask(void* pvParameters) { 
+  portTickType xLastWakeTime;
+	const portTickType xPeriod = (FILTER_TASK_HZ / portTICK_RATE_MS);
+	xLastWakeTime = xTaskGetTickCount();
+  for(;;) {
+
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    //xSemaphoreGive(serial_mutex);
+  } 
+}
+
+
 void UARTReadTask(void* pvParameters) {
   portTickType xLastWakeTime;
   const portTickType xPeriod = (UART_RECEIVE_TASK_HZ / portTICK_RATE_MS);
   xLastWakeTime = xTaskGetTickCount();
   BaseType_t xTaskWokenByReceive = pdFALSE;
-  lpFilterGyroX->setBiquad(bq_type_lowpass, 0.5, 0.707, 0);
-  lpFilterGyroY->setBiquad(bq_type_lowpass, 0.5, 0.707, 0);
-  lpFilterGyroZ->setBiquad(bq_type_lowpass, 0.5, 0.707, 0);
-  lpFilterAccelX->setBiquad(bq_type_lowpass, 0.5, 0.707, 0);
-  lpFilterAccelY->setBiquad(bq_type_lowpass, 0.5, 0.707, 0);
-  lpFilterAccelZ->setBiquad(bq_type_lowpass, 0.5, 0.707, 0);
+  lpFilterGyroX->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+  lpFilterGyroY->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+  lpFilterGyroZ->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+  lpFilterAccelX->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+  lpFilterAccelY->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+  lpFilterAccelZ->setBiquad(bq_type_lowpass, 0.075, 0.707, 0);
+
+  nFilterGyroX -> setBiquad(bq_type_notch, 0.5, 2, 0);  // 0.5, 2, 0
+  nFilterGyroY -> setBiquad(bq_type_notch, 0.5, 2, 0);
+  nFilterGyroZ -> setBiquad(bq_type_notch, 0.5, 2, 0);
+  nFilterAccelX -> setBiquad(bq_type_notch, 0.5, 2, 0);
+  nFilterAccelY -> setBiquad(bq_type_notch, 0.5, 2, 0);
+  nFilterAccelZ -> setBiquad(bq_type_notch, 0.5, 2, 0);
+
   for (;;) {
+
     if (Serial1.available()) {
       //Serial.println("receive");
       uint8_t sByte = Serial1.read();
@@ -143,12 +165,14 @@ void UARTReadTask(void* pvParameters) {
         // memcpy(&f4, &buffer[12], sizeof(float));
         // memcpy(&f5, &buffer[16], sizeof(float));
         // memcpy(&f6, &buffer[20], sizeof(float));
-        // gyroX = lpFilterGyroX -> process(f4);
-        // gyroY = lpFilterGyroY -> process(f5);
+       // accelXRaw = f1;+
+
+       //gyroX = lpFilterGyroX -> process(f4);
+       // gyroY = lpFilterGyroY -> process(f5);
         // gyroZ = lpFilterGyroZ -> process(f6);
-        // accelX = lpFilterAccelX -> process(f1);
-        // accelY = lpFilterAccelY -> process(f2);
-        // accelZ = lpFilterAccelZ -> process(f3);
+       // accelX = lpFilterAccelX -> process(f1);
+       // accelY = lpFilterAccelY -> process(f2);
+       //accelZ = lpFilterAccelZ -> process(f3);
         // nPTgyroX = pt1FilterApplyGX(gyroX);
         // nPTgyroY = pt1FilterApplyGY(gyroY);
         // nPTgyroZ = pt1FilterApplyGZ(gyroZ);
@@ -156,14 +180,28 @@ void UARTReadTask(void* pvParameters) {
         // nPTaccelY = pt1FilterApplyAY(accelY);
         // nPTaccelZ = pt1FilterApplyAZ(accelZ);
 
-        nPTgyroX = f4;
-        nPTgyroY = f5;
-        nPTgyroZ = f6;
-        nPTaccelX = f1;
-        nPTaccelY = f2;
-        nPTaccelZ = f3;
+      lPTgyroX = lpFilterGyroX ->process(f4);
+      lPTgyroY = lpFilterGyroY ->process(f5);
+      lPTgyroZ = lpFilterGyroZ ->process(f6);
+      lPTaccelX = lpFilterAccelX ->process(f1);
+      lPTaccelY = lpFilterAccelY ->process(f2);
+      lPTaccelZ = lpFilterAccelZ ->process(f3);
+      nPTgyroX = nFilterGyroX ->process(lPTgyroX);
+      nPTgyroY = nFilterGyroY ->process(lPTgyroY);
+      nPTgyroZ = nFilterGyroZ ->process(lPTgyroZ);
+      nPTaccelX = nFilterAccelX ->process(lPTaccelX);
+      nPTaccelY = nFilterAccelY ->process(lPTaccelY);
+      nPTaccelZ = nFilterAccelZ ->process(lPTaccelZ);
 
-        imu_filter_rp(-nPTaccelX, -nPTaccelY, -nPTaccelZ, nPTgyroX, nPTgyroY, 0);
+
+      // nPTgyroX = lpFilterGyroX -> process(f4);
+      //  nPTgyroY = lpFilterGyroY -> process(f5);
+      // nPTgyroZ = lpFilterGyroZ -> process(f6);
+      //nPTaccelX = lpFilterAccelX -> process(f1);
+       //nPTaccelY = lpFilterAccelY -> process(f2);
+       // nPTaccelZ = lpFilterAccelZ -> process(f3);
+
+        imu_filter_rp(-nPTaccelX, -nPTaccelY, -nPTaccelZ, nPTgyroX, nPTgyroY, 0); //Данил. Внедрил nPTgyroZ
 
         //imu_filter_y(accelX_average, accelY_average, accelZ_average, gyroX_average, gyroY_average, gyroZ_average);
         yaw = 0;
@@ -172,16 +210,6 @@ void UARTReadTask(void* pvParameters) {
         deg_roll = roll;
         deg_pitch = pitch;
         deg_yaw = yaw;
-        //eulerAngles(q_est_y, &auxiliary_roll, &auxiliary_pitch, &auxiliary_yaw);
-        //delay(100);
-          // устанавливаем коэффициенты фильтра
-      //Serial.println(sByte);
-      //;
-      //float f1 = (float)(buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]);
-      // Serial.println(buffer[0]);
-        // Serial.println(roll, 5);
-        // Serial.println(pitch, 5);
-        // Serial.println(yaw, 5);
       }
     }
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
@@ -221,7 +249,7 @@ void pidRegulatorTask(void* pvParameters) {
   // PIDImpl pidYaw(1, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 3, 2, 0);
 
   for(;;) {
-    //xSemaphoreTake(param_mutex, portMAX_DELAY);
+    // xSemaphoreTake(param_mutex, portMAX_DELAY);
     // errorRoll = targetRoll - deg_roll;
     // errorPitch = targetPitch - deg_pitch;
     // errorYaw = targetYaw - deg_yaw;
@@ -244,16 +272,16 @@ void pidRegulatorTask(void* pvParameters) {
     // additionalPowerLF = -errorPitch + errorRoll;
     // additionalPowerRF = -errorPitch - errorRoll;
 
-    // additionalPowerLB = errorPitch + errorRoll - errorYaw;
-    // additionalPowerRB = -errorPitch + errorRoll + errorYaw;
-    // additionalPowerLF = errorPitch - errorRoll + errorYaw;
-    // additionalPowerRF = -errorPitch - errorRoll - errorYaw;
+    additionalPowerLB = errorPitch + errorRoll + errorYaw;
+    additionalPowerRB = -errorPitch + errorRoll - errorYaw;
+    additionalPowerLF = errorPitch - errorRoll - errorYaw;
+    additionalPowerRF = -errorPitch - errorRoll + errorYaw;
 
     
-    additionalPowerLB = errorPitch + errorRoll;
-    additionalPowerRB = -errorPitch + errorRoll;
-    additionalPowerLF = errorPitch - errorRoll;
-    additionalPowerRF = -errorPitch - errorRoll;
+    // additionalPowerLB = errorPitch + errorRoll;
+    // additionalPowerRB = -errorPitch + errorRoll;
+    // additionalPowerLF = errorPitch - errorRoll;
+    // additionalPowerRF = -errorPitch - errorRoll;
 
     // additionalPowerLB = errorPitch;
     // additionalPowerRB = -errorPitch;

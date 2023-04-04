@@ -9,7 +9,8 @@
 #include "freertos/task.h"
 #include <ESP32CAN.h>
 #include <TroykaIMU.h>
-
+#include "Biquad.h"
+#include <string.h>
 // множитель фильтра
 #define BETA 0.22f
  
@@ -17,6 +18,7 @@
 Madgwick filter;
 
 void timer_interrupt();
+void filterTask(void* pvParameters);
 void iBusReadTask(void* pvParameters);
 void iBusLoopTask(void* pvParameters);
 void UARTReadTask(void* pvParameters);
@@ -44,6 +46,7 @@ TaskHandle_t Task4;
 TaskHandle_t Task5;
 TaskHandle_t Task6;
 TaskHandle_t Task7;
+TaskHandle_t Task8;
 
 SemaphoreHandle_t serial_mutex;
 SemaphoreHandle_t param_mutex;
@@ -55,6 +58,7 @@ const int interval = 500;         // Интервал отправки CAN со�
 const int rx_queue_size = 1;     // Размер буфера приёма
 constexpr gpio_num_t CAN_TX_PIN = GPIO_NUM_23;
 constexpr gpio_num_t CAN_RX_PIN = GPIO_NUM_19;
+
 
 void setup() {
   // Светодиоды
@@ -163,7 +167,10 @@ void setup() {
   BaseType_t t5 = xTaskCreatePinnedToCore(pidRegulatorTask, "Task5", 5000, NULL, 1, &Task5, 1);
   BaseType_t t6 = xTaskCreatePinnedToCore(TFMiniReadTask, "Task6", 5000, NULL, 1, &Task6, 0);
   BaseType_t t7 = xTaskCreatePinnedToCore(UARTReadTask, "Task7", 30000, NULL, 1, &Task7, 0);
+  BaseType_t t8 = xTaskCreatePinnedToCore(filterTask, "Task8", 30000, NULL, 1, &Task8, 0);
   // Создание тасков
+
+ 
 
 }
 
@@ -171,89 +178,120 @@ extern PIDImpl pidRoll;
 extern PIDImpl pidPitch;
 extern float deg_pitch, deg_roll;
 extern float yaw, pitch, roll;
-extern float altitude, powerLB;
+extern float altitude, powerLB, powerLF, powerRB, powerRF;
 extern float targetRoll, targetPitch, targetYaw;
 extern float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 extern float errorRoll, errorPitch, errorYaw;
 extern float additionalPowerRF, additionalPowerRB, additionalPowerLF, additionalPowerLB;
 extern float gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
+extern float nPTgyroX, nPTgyroY, nPTgyroZ, nPTaccelX, nPTaccelY, nPTaccelZ, lPTgyroX, lPTgyroY, lPTgyroZ, lPTaccelX, lPTaccelY, lPTaccelZ;
+extern float accelXRaw;
+extern float f1, f2, f3, f4, f5, f6;
+
+
 
 void loop() {
-    // Serial.println("loop");
-    // //if (Serial1.available()) {
-    //   Serial.println("receive");
-    //   uint8_t sByte = Serial1.read();
-    
-    // if (sByte == 83) {
-    //   Serial.println("receive");
-    //   Serial.println(sByte);
-    //   Serial1.readBytes(buffer, 24);
-    //   memcpy(&f1, &buffer[0], sizeof(float));
-    //   memcpy(&f2, &buffer[4], sizeof(float));
-    //   memcpy(&f3, &buffer[8], sizeof(float));
-    //   memcpy(&f4, &buffer[12], sizeof(float));
-    //   memcpy(&f5, &buffer[16], sizeof(float));
-    //   memcpy(&f6, &buffer[20], sizeof(float));
-    //   delay(500);
-    //   Serial.println(f1);
-    //   Serial.println(f2);
-    //   Serial.println(f3);
-    //   Serial.println(f4);
-    //   Serial.println(f5);
-    //   Serial.println(f6);
-    //   Serial.println("----------------");
-    // }
-  //#ifdef DEBUG_PRINT
-    Serial.print("roll: ");
-    Serial.print(roll, 5);
-    Serial.print("\t\t");
-    Serial.print("pitch: ");
-    Serial.print(pitch, 5);
-    Serial.print("\t\t");
-    Serial.print("yaw: ");
-    Serial.println(yaw, 5);
-    Serial.println("===============================");
-    // // delay(1000);
-    Serial.print("error roll: ");
-    Serial.print(errorRoll);
-    Serial.print("\t");
-    Serial.print("error pitch: ");
-    Serial.print(errorPitch);
-    Serial.print("\t");
-    Serial.print("error yaw: ");
-    Serial.println(errorYaw);
-    Serial.println("===============================");
-    // Serial.print("P koeff: ");
-    // Serial.print(powerLB);
-    // Serial.print("\t\t");
-    // Serial.print("D koeff: ");
-    // Serial.println(pidRoll.getDcoefficient());
-    // Serial.println("===============================");
-    // Serial.println(deg_roll, 3);
-    // Serial.println(deg_pitch, 3);
-    // Serial.println(yaw, 3);
-    // if (deg_roll > 5) {
-    //   Serial.println("boom");
-    // }
-    // Serial.println(accelX, 5);
-    // Serial.println(accelY, 5);
-    // Serial.println(accelZ, 5);
-    //Serial.println("----------------");
 
-    //filter.setKoeff(10, BETA);
-    // обновляем входные данные в фильтр
-    //filter.update(gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+ // Serial.println("Time from the start of the program: " + (String)millis() + " (ms). PWM signal:");
+ // Serial.println("Rotor-1: " + (String)powerLF + "       Rotor-2: " + (String)powerRF + "       Rotor-3: " + (String)powerLB + "       Rotor-4: " + (String)powerRB + "\n");
+//  Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Gyroscope data (XYZ):");
+//  Serial.println("X-axis: " + (String)f4 + "       Y-axis: " + (String)f5 + "       Z-axis: "+ (String)f6 + "\n");
+//  Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Accelerometer data (XYZ):");
+ // Serial.println("X-axis: " + (String)f1 + "       Y-axis: " + (String)f2 + "       Z-axis: "+ (String)f3 + "\n");
+ // Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Filtered gyroscope data by low-pass filter (XYZ):");
+//  Serial.println("X-axis: " + (String)lPTgyroX + "       Y-axis: " + (String)lPTgyroY + "       Z-axis: "+ (String)lPTgyroZ + "\n");
+//  Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Filtered accelerometer data by low-pass filter (XYZ):");
+//  Serial.println("X-axis: " + (String)lPTaccelX + "       Y-axis: " + (String)lPTaccelY + "       Z-axis: "+ (String)lPTaccelZ + "\n");
+//  Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Filtered gyroscope data by low-pass & notch filter (XYZ):");
+//  Serial.println("X-axis: " + (String)nPTgyroX + "       Y-axis: " + (String)nPTgyroY + "       Z-axis: "+ (String)nPTgyroZ + "\n");
+ // Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Filtered accelerometer data by low-pass & notch filter (XYZ):");
+ // Serial.println("X-axis: " + (String)nPTaccelX + "       Y-axis: " + (String)nPTaccelY + "       Z-axis: "+ (String)nPTaccelZ + "\n");
+ // Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Obtained angles after filtering by the Madgwick filter (Roll, Pitch, Yaw):");
+ // Serial.println("Roll: " + (String)roll + "       Pitch: " + (String)pitch + "       Yaw: "+ (String)yaw + "\n");
+ // Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Target Positions (Roll, Pitch, Yaw):");
+ // Serial.println("Target Roll: " + (String)targetRoll + "       Target Pitch: " + (String)targetPitch + "       Target Yaw: "+ (String)targetYaw + "\n");
+ // Serial.println("Time from the start of the program: " + (String)millis() + " (ms). Position error (Roll, Pitch, Yaw):");
+ // Serial.println("Error Roll: " + (String)errorRoll + "       Error Pitch: " + (String)errorPitch + "       Error Yaw: "+ (String)errorYaw);
+ // Serial.print("\n\n\n\n\n\n\n");
+ // delay(200);
+  // Serial.print(" ");
+  // Serial.print(" ");
+  // Serial.print(accelXRaw);
+  // Serial.print(" ");
+   
+   
+   //Serial.print(targetPowerLB); //25
+  // Serial.print("\t");
+   //Serial.println(targetPowerRF); //25
+ //  Serial.println();
+ //   Serial.print("\t");
+ //  Serial.println(targetPowerRB); //27
+ //  Serial.println();
+ //  Serial.println();
+
   
-    // получение углов yaw, pitch и roll из фильтра
-    // yaw =  filter.getYawDeg();
-    // pitch = filter.getPitchDeg();
-    // roll = filter.getRollDeg();
-
-    // Serial.println(roll, 5);
-    // Serial.println(pitch, 5);
-    // Serial.println(yaw, 5);
-    // Serial.println("----------------");
-    //delay(100);
+  // Serial.println();
+  //#ifdef DEBUG_PRINT
+   Serial.print(f4);
+   Serial.print(" ");
+   Serial.print(f5);
+   Serial.print(" ");
+   Serial.print(f6);
+   Serial.print(" ");
+   Serial.print(f1);
+   Serial.print(" ");
+   Serial.print(f2);
+   Serial.print(" ");
+   Serial.print(f3);
+   Serial.print(" ");
+   Serial.print(lPTgyroX);
+   Serial.print(" ");
+   Serial.print(lPTgyroY);
+   Serial.print(" ");
+   Serial.print(lPTgyroZ);
+   Serial.print(" ");
+   Serial.print(lPTaccelX);
+   Serial.print(" ");
+   Serial.print(lPTaccelY);
+   Serial.print(" ");
+   Serial.print(lPTaccelZ);
+   Serial.print(" ");
+   Serial.print(nPTgyroX);
+   Serial.print(" ");
+   Serial.print(nPTgyroY);
+   Serial.print(" ");
+   Serial.print(nPTgyroZ);
+   Serial.print(" ");
+   Serial.print(nPTaccelX);
+   Serial.print(" ");
+   Serial.print(nPTaccelY);
+   Serial.print(" ");
+   Serial.print(nPTaccelZ);
+   Serial.print(" ");
+   Serial.print(deg_roll);
+   Serial.print(" ");
+   Serial.print(deg_pitch);
+   Serial.print(" ");
+   Serial.print(yaw);
+   Serial.print(" ");
+   Serial.println(millis());
+   // Serial.print(accelX, 5);
+   // Serial.print("\t\t");
+   // Serial.print("pitch: ");
+   // Serial.print(accelY, 5);
+   // Serial.print("\t\t");
+   // Serial.print("yaw: ");
+  //  Serial.println(accelZ, 5);
+  // Serial.println("===============================");
+   // Serial.print("error roll: ");
+    //Serial.print(f4);
+   // Serial.print(" ");
+  //  Serial.print("error pitch: ");
+   // Serial.println(nPTgyroX);
+   // Serial.print("\t");
+   // Serial.print("error yaw: ");
+   // Serial.println(gyroZ);
+   // Serial.println("===============================");
   //#endif
-  delay(100);
+ 
 }
