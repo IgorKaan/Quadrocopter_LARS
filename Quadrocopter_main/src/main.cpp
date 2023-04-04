@@ -11,6 +11,7 @@
 #include <TroykaIMU.h>
 #include "Biquad.h"
 #include <string.h>
+#include <string>
 #include <Chebishev.h>
 #include <GoodMorningCopter.h>
 unsigned long timing;
@@ -79,6 +80,7 @@ constexpr gpio_num_t CAN_TX_PIN = GPIO_NUM_23;
 constexpr gpio_num_t CAN_RX_PIN = GPIO_NUM_19;
 
 
+
 void setup() {
   WakeUp();
  // ReadyToCalibration();
@@ -135,7 +137,7 @@ void setup() {
   serial_mutex = xSemaphoreCreateMutex();
   // Создание мьютексов
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Инициализация приемника
   iBus.begin(Serial2);
@@ -188,7 +190,7 @@ void setup() {
 
   BaseType_t t7 = xTaskCreatePinnedToCore(UARTReadTask, "Task7", 30000, NULL, 1, &Task7, 0);
   delay(3000);
-  //ReadyToCalibration();
+  ReadyToCalibration();
   int i = 0;
   for( i; i < 1000; i++)
   //while(millis() < 10000)
@@ -212,7 +214,7 @@ void setup() {
   //Serial.println(x);
   //Serial.println(SumRiseErrorYaw);
   //Serial.println(RiseErrorYaw);
-  //EndCalibration();
+  EndCalibration();
 
   // Создание тасков
   BaseType_t t1 = xTaskCreatePinnedToCore(iBusReadTask, "Task1", 5000, NULL, 1, &Task1, 1);
@@ -277,109 +279,112 @@ void loop() {
  PercentPowerLF = (powerLF - MIN_POWER) / PowerToPercent;
  PercentPowerRB = (powerRB - MIN_POWER) / PowerToPercent;
  PercentPowerRF = (powerRF - MIN_POWER) / PowerToPercent; */
-  if (millis() - timing > 100) { // Вместо 10000 подставьте нужное вам значение паузы 
+  if (millis() - timing > 10) { // Вместо 10000 подставьте нужное вам значение паузы 
   timing = millis(); 
-
+  char str[1000];
+  sprintf (str, "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",  f4, f5, f6, f1, f2, f3, BiquadLowPassGyroX, BiquadLowPassGyroY, BiquadLowPassGyroZ, BiquadLowPassAccelX, BiquadLowPassAccelY, BiquadLowPassAccelZ, BiquadNotchGyroX, BiquadNotchGyroY, BiquadNotchGyroZ, BiquadNotchAccelX, BiquadNotchAccelY, BiquadNotchAccelZ, deg_roll, deg_pitch, yaw, targetPowerLF, targetPowerRF, targetPowerLB, targetPowerRB, ChebishevGyroX, ChebishevGyroY, ChebishevGyroZ, ChebishevAccelX, ChebishevAccelY, ChebishevAccelZ, LowPassGyroX, LowPassGyroY, LowPassGyroZ, LowPassAccelX, LowPassAccelY, LowPassAccelZ, PT1GyroX, PT1GyroY, PT1GyroZ, PT1AccelX, PT1AccelY, PT1AccelZ, targetRoll, targetPitch, targetYaw, errorRoll, errorPitch, errorYaw);
  
-  //  Serial.print(f4);
-  //  Serial.print(" ");
-  //  Serial.print(f5);
-  //  Serial.print(" ");
-  //  Serial.print(f6);
-  //  Serial.print(" ");
-  //  Serial.print(f1);
-  //  Serial.print(" ");
-  //  Serial.print(f2);
-  //  Serial.print(" ");
-  //  Serial.print(f3);
-  //  Serial.print(" "); 
-  //  Serial.print(BiquadLowPassGyroX);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadLowPassGyroY);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadLowPassGyroZ);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadLowPassAccelX);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadLowPassAccelY);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadLowPassAccelZ);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadNotchGyroX);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadNotchGyroY);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadNotchGyroZ);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadNotchAccelX);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadNotchAccelY);
-  //  Serial.print(" ");
-  //  Serial.print(BiquadNotchAccelZ);
-  //  Serial.print(" "); 
-  //  Serial.print(deg_roll);
-  //  Serial.print(" ");
-  //  Serial.print(deg_pitch);
-  //  Serial.print(" ");
-  //  Serial.print(yaw);
-  //  Serial.print(" ");
-  //  Serial.print(targetPowerLF);
-  //  Serial.print(" ");
-  //  Serial.print(targetPowerRF);
-  //  Serial.print(" ");
-  //  Serial.print(targetPowerLB);
-  //  Serial.print(" ");
-  //  Serial.print(targetPowerRB);
-  //  Serial.print(" "); 
-  //  Serial.print(ChebishevGyroX);
-  //  Serial.print(" ");
-  //  Serial.print(ChebishevGyroY);
-  //  Serial.print(" ");
-  //  Serial.print(ChebishevGyroZ);
-  //  Serial.print(" ");
-  //  Serial.print(ChebishevAccelX);
-  //  Serial.print(" ");
-  //  Serial.print(ChebishevAccelY); 
-  //  Serial.print(" ");
-  //  Serial.print(ChebishevAccelZ); 
-  //  Serial.print(" ");
-  //  Serial.print(LowPassGyroX);
-  //  Serial.print(" ");
-  //  Serial.print(LowPassGyroY);
-  //  Serial.print(" ");
-  //  Serial.print(LowPassGyroZ);
-  //  Serial.print(" ");
-  //  Serial.print(LowPassAccelX);
-  //  Serial.print(" ");
-  //  Serial.print(LowPassAccelY); 
-  //  Serial.print(" ");
-  //  Serial.print(LowPassAccelZ); 
-  //  Serial.print(" ");
-  //  Serial.print(PT1GyroX);
-  //  Serial.print(" ");
-  //  Serial.print(PT1GyroY);
-  //  Serial.print(" ");
-  //  Serial.print(PT1GyroZ);
-  //  Serial.print(" ");
-  //  Serial.print(PT1AccelX);
-  //  Serial.print(" ");
-  //  Serial.print(PT1AccelY); 
-  //  Serial.print(" ");
-  //  Serial.print(PT1AccelZ); 
-  //  Serial.print(" ");
-  //  Serial.print(targetRoll);
-  //  Serial.print(" ");
-  //  Serial.print(targetPitch); 
-  //  Serial.print(" ");
-  //  Serial.print(targetYaw); 
-  //  Serial.print(" ");
-  //  Serial.print(errorRoll);
-  //  Serial.print(" ");
-  //  Serial.print(errorPitch); 
-  //  Serial.print(" ");
-  //  Serial.print(errorYaw); 
-  //  Serial.print(" ");
-  //  Serial.println(millis()); 
+  //string k = "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", f4, f5, f6, f1, f2, f3, BiquadLowPassGyroX, BiquadLowPassGyroY, BiquadLowPassGyroZ, BiquadLowPassAccelX, BiquadLowPassAccelY, BiquadLowPassAccelZ, BiquadNotchGyroX, BiquadNotchGyroY, BiquadNotchGyroZ, BiquadNotchAccelX, BiquadNotchAccelY, BiquadNotchAccelZ, deg_roll, deg_pitch, yaw, targetPowerLF, targetPowerRF, targetPowerLB, targetPowerRB, ChebishevGyroX, ChebishevGyroY, ChebishevGyroZ, ChebishevAccelX, ChebishevAccelY, ChebishevAccelZ, LowPassGyroX, LowPassGyroY, LowPassGyroZ, LowPassAccelX, LowPassAccelY, LowPassAccelZ, PT1GyroX, PT1GyroY, PT1GyroZ, PT1AccelX, PT1AccelY, PT1AccelZ, targetRoll, targetPitch, targetYaw, errorRoll, errorPitch, errorYaw;
+  Serial.print(str);
+   /* Serial.print(" ");
+  
+    Serial.print(f5);49
+    Serial.print(" ");
+    Serial.print(f6);48
+    Serial.print(" ");
+    Serial.print(f1);47
+    Serial.print(" ");
+    Serial.print(f2);46
+    Serial.print(" ");
+    Serial.print(f3);
+    Serial.print(" "); 45
+   Serial.print(BiquadLowPassGyroX);44
+   Serial.print(" ");
+   Serial.print(BiquadLowPassGyroY);43
+   Serial.print(" ");
+   Serial.print(BiquadLowPassGyroZ);42
+   Serial.print(" ");
+   Serial.print(BiquadLowPassAccelX);41
+   Serial.print(" ");
+   Serial.print(BiquadLowPassAccelY);40
+   Serial.print(" ");
+   Serial.print(BiquadLowPassAccelZ);39
+   Serial.print(" ");
+   Serial.print(BiquadNotchGyroX);38
+   Serial.print(" ");
+   Serial.print(BiquadNotchGyroY);37
+   Serial.print(" ");
+   Serial.print(BiquadNotchGyroZ);36
+   Serial.print(" ");
+   Serial.print(BiquadNotchAccelX);35
+   Serial.print(" ");
+   Serial.print(BiquadNotchAccelY);34
+   Serial.print(" ");
+   Serial.print(BiquadNotchAccelZ);33
+   Serial.print(" "); 
+   Serial.print(deg_roll);32
+   Serial.print(" ");
+   Serial.print(deg_pitch);31
+   Serial.print(" ");
+   Serial.print(yaw);30
+   Serial.print(" ");
+   Serial.print(targetPowerLF);29
+   Serial.print(" ");
+   Serial.print(targetPowerRF);28
+   Serial.print(" ");
+   Serial.print(targetPowerLB);27
+   Serial.print(" ");
+   Serial.print(targetPowerRB);26
+   Serial.print(" "); 
+   Serial.print(ChebishevGyroX);25
+   Serial.print(" ");
+   Serial.print(ChebishevGyroY);24
+   Serial.print(" ");
+   Serial.print(ChebishevGyroZ);23
+   Serial.print(" ");
+   Serial.print(ChebishevAccelX);22
+   Serial.print(" ");
+   Serial.print(ChebishevAccelY); 21
+   Serial.print(" ");
+   Serial.print(ChebishevAccelZ); 20
+   Serial.print(" ");
+   Serial.print(LowPassGyroX);19
+   Serial.print(" ");
+   Serial.print(LowPassGyroY);18
+   Serial.print(" ");
+   Serial.print(LowPassGyroZ);17
+   Serial.print(" ");
+   Serial.print(LowPassAccelX);16
+   Serial.print(" ");
+   Serial.print(LowPassAccelY); 15
+   Serial.print(" ");
+   Serial.print(LowPassAccelZ);  14
+   Serial.print(" ");
+   Serial.print(PT1GyroX);13
+   Serial.print(" ");
+   Serial.print(PT1GyroY); 12
+   Serial.print(" ");
+   Serial.print(PT1GyroZ); 11
+   Serial.print(" ");
+   Serial.print(PT1AccelX); 10
+   Serial.print(" ");
+   Serial.print(PT1AccelY); 9
+   Serial.print(" ");
+   Serial.print(PT1AccelZ); 8
+   Serial.print(" ");
+   Serial.print(targetRoll);7
+   Serial.print(" ");
+   Serial.print(targetPitch); 6
+   Serial.print(" ");
+   Serial.print(targetYaw); 5
+   Serial.print(" ");
+   Serial.print(errorRoll);4
+   Serial.print(" ");
+   Serial.print(errorPitch); 3
+   Serial.print(" ");
+   Serial.print(errorYaw); 2
+   Serial.print(" ");
+   Serial.println(millis()); 8*/ 
   }
    // Serial.print(accelX, 5);
    // Serial.print("\t\t");

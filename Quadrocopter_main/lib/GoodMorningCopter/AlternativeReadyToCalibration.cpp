@@ -23,18 +23,18 @@ void WakeUp()
     OldGyroX = f4;
     OldGyroY = f5;
     OldGyroZ = f6;
-    Serial.println(OldGyroX);
+    //Serial.println(OldGyroX);
     delay(10);
-    Serial.println(f4);
+    //Serial.println(f4);
     VGyroX = f4 - OldGyroX;
     VGyroY = f5 - OldGyroY;
     VGyroZ = f6 - OldGyroZ;
-    Serial.println(VGyroX);
-    Serial.println(VGyroY);
-    Serial.println(VGyroZ);
+   // Serial.println(VGyroX);
+   // Serial.println(VGyroY);
+   // Serial.println(VGyroZ);
     //delay(5000);
-    Serial.println("Bad");
-    Serial.println(abs(f3));
+   // Serial.println("Bad");
+  //  Serial.println(abs(f3));
     while((abs(f4 - OldGyroX) < 0.01) && (abs(f5 - OldGyroY) < 0.01) && (abs(f6 - OldGyroZ) < 0.01)) // (-1 < f4 < 1)&&(-1 < f5 <  1)&&(-1 < f6 < 1))
     {
         OldGyroX = f4;
@@ -42,8 +42,8 @@ void WakeUp()
         Time = millis() - OldTime;
        if(Time >= 3000)
        {
-        Serial.println(f3);
-        Serial.println("Hi");
+       // Serial.println(f3);
+       // Serial.println("Hi");
         ledcWrite(4, 200);
         delay(1000);
         ledcWrite(4, 0);
