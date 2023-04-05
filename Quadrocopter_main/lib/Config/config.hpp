@@ -2,7 +2,7 @@
 
 #define STM_START 14
 
-//#define CALIBRATION
+// #define CALIBRATION
 
 // #define RX1_PIN 39 // D1 X9 GREEN TX
 // #define TX1_PIN 36 // D2 X10 WHITE RX
@@ -17,7 +17,7 @@
 
 //#define ALTITUDE_HOLD_MODE
 
-#define TARGET_ANGLE 15
+#define TARGET_ANGLE 30
 //#define TARGET_ANGLE 15
 
 #define FILTER_TASK_HZ          1000/100   // 1000Hz

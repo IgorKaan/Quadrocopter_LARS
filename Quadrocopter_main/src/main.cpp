@@ -95,42 +95,6 @@ void setup() {
 //  float x5 = Serial2.read();
 //  float x6 = Serial2.read();
  //ReadyToCalibration();
-  // Инициализация двигателей
-  pinMode(PWM_MOTOR_1, OUTPUT);
-  pinMode(PWM_MOTOR_2, OUTPUT);
-  pinMode(PWM_MOTOR_3, OUTPUT);
-  pinMode(PWM_MOTOR_4, OUTPUT);
-  ledcSetup(PWM_CHANNEL_MOTOR_1, PWM_FREQUENCY, PWM_RESOLUTION);
-  ledcSetup(PWM_CHANNEL_MOTOR_2, PWM_FREQUENCY, PWM_RESOLUTION);
-  ledcSetup(PWM_CHANNEL_MOTOR_3, PWM_FREQUENCY, PWM_RESOLUTION);
-  ledcSetup(PWM_CHANNEL_MOTOR_4, PWM_FREQUENCY, PWM_RESOLUTION);
-  ledcAttachPin(PWM_MOTOR_1, PWM_CHANNEL_MOTOR_1);
-  ledcAttachPin(PWM_MOTOR_2, PWM_CHANNEL_MOTOR_2);
-  ledcAttachPin(PWM_MOTOR_3, PWM_CHANNEL_MOTOR_3);
-  ledcAttachPin(PWM_MOTOR_4, PWM_CHANNEL_MOTOR_4);
-  #ifndef CALIBRATION
-  ledcWrite(PWM_CHANNEL_MOTOR_1, MIN_POWER);
-  ledcWrite(PWM_CHANNEL_MOTOR_2, MIN_POWER);
-  ledcWrite(PWM_CHANNEL_MOTOR_3, MIN_POWER);
-  ledcWrite(PWM_CHANNEL_MOTOR_4, MIN_POWER);
-  #endif
-  #ifdef CALIBRATION
-  ledcWrite(PWM_CHANNEL_MOTOR_1, MAX_POWER);
-  ledcWrite(PWM_CHANNEL_MOTOR_2, MAX_POWER);
-  ledcWrite(PWM_CHANNEL_MOTOR_3, MAX_POWER);
-  ledcWrite(PWM_CHANNEL_MOTOR_4, MAX_POWER);
-  delay(5000);
-  for (int i = MAX_POWER; i > MIN_POWER; --i) {
-  // ledcWrite(PWM_CHANNEL_MOTOR_1, i);
-  // ledcWrite(PWM_CHANNEL_MOTOR_2, i);
-  // ledcWrite(PWM_CHANNEL_MOTOR_3, i);
-  // ledcWrite(PWM_CHANNEL_MOTOR_4, i);
-  // delay(1);
-  }
-  delay(2500);
-  #endif
-  // Инициализация двигателей
-  delay(5000);
 
   // Создание мьютексов
   param_mutex = xSemaphoreCreateMutex();
@@ -202,7 +166,7 @@ void setup() {
   SumErrorsAccelY += /*f2*/ BiquadNotchAccelY - 0;
   SumErrorsAccelZ += /*f3*/ BiquadNotchAccelZ + 9.81;
   //i++;
-  delay(5);
+  delay(10);
   }
   ErrorGyroX = SumErrorsGyroX / i;
   ErrorGyroY = SumErrorsGyroY / i;
@@ -215,6 +179,43 @@ void setup() {
   //Serial.println(SumRiseErrorYaw);
   //Serial.println(RiseErrorYaw);
   EndCalibration();
+
+    // Инициализация двигателей
+  pinMode(PWM_MOTOR_1, OUTPUT);
+  pinMode(PWM_MOTOR_2, OUTPUT);
+  pinMode(PWM_MOTOR_3, OUTPUT);
+  pinMode(PWM_MOTOR_4, OUTPUT);
+  ledcSetup(PWM_CHANNEL_MOTOR_1, PWM_FREQUENCY, PWM_RESOLUTION);
+  ledcSetup(PWM_CHANNEL_MOTOR_2, PWM_FREQUENCY, PWM_RESOLUTION);
+  ledcSetup(PWM_CHANNEL_MOTOR_3, PWM_FREQUENCY, PWM_RESOLUTION);
+  ledcSetup(PWM_CHANNEL_MOTOR_4, PWM_FREQUENCY, PWM_RESOLUTION);
+  ledcAttachPin(PWM_MOTOR_1, PWM_CHANNEL_MOTOR_1);
+  ledcAttachPin(PWM_MOTOR_2, PWM_CHANNEL_MOTOR_2);
+  ledcAttachPin(PWM_MOTOR_3, PWM_CHANNEL_MOTOR_3);
+  ledcAttachPin(PWM_MOTOR_4, PWM_CHANNEL_MOTOR_4);
+  #ifndef CALIBRATION
+  ledcWrite(PWM_CHANNEL_MOTOR_1, MIN_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_2, MIN_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_3, MIN_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_4, MIN_POWER);
+  #endif
+  #ifdef CALIBRATION
+  ledcWrite(PWM_CHANNEL_MOTOR_1, MAX_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_2, MAX_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_3, MAX_POWER);
+  ledcWrite(PWM_CHANNEL_MOTOR_4, MAX_POWER);
+  delay(5000);
+  for (int i = MAX_POWER; i > MIN_POWER; --i) {
+  // ledcWrite(PWM_CHANNEL_MOTOR_1, i);
+  // ledcWrite(PWM_CHANNEL_MOTOR_2, i);
+  // ledcWrite(PWM_CHANNEL_MOTOR_3, i);
+  // ledcWrite(PWM_CHANNEL_MOTOR_4, i);
+  // delay(1);
+  }
+  delay(2500);
+  #endif
+  // Инициализация двигателей
+  delay(5000);
 
   // Создание тасков
   BaseType_t t1 = xTaskCreatePinnedToCore(iBusReadTask, "Task1", 5000, NULL, 1, &Task1, 1);

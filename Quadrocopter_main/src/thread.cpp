@@ -54,9 +54,9 @@ float powerLB = MIN_POWER;
 float targetPowerRF, targetPowerRB, targetPowerLF, targetPowerLB;
 float TrueGyroX, TrueGyroY, TrueGyroZ, TrueAccelX, TrueAccelY, TrueAccelZ;
 
-PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.5, 1.06, 1.5);        //1.5, 0.7, 1.5
-PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 4.5, 1.06, 1.5);       //1.5, 0.7, 1.5
-PIDImpl pidYaw(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 2, 0, 0);        //4.5
+PIDImpl pidRoll(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.3, 1.3, 2);        //1.5, 0.7, 1.5
+PIDImpl pidPitch(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 1.3, 1.3, 2);       //1.5, 0.7, 1.5
+PIDImpl pidYaw(0.01, PID_OUTPUT, -PID_OUTPUT, PID_I_MAX, PID_I_MIN, 8, 0.4, 0);        //4.5
 
 extern TFMPlus tfmP; 
 
@@ -255,10 +255,10 @@ void pidRegulatorTask(void* pvParameters) {
     // additionalPowerLF = -errorPitch + errorRoll;
     // additionalPowerRF = -errorPitch - errorRoll;
 
-    additionalPowerLB = errorPitch + errorRoll + errorYaw;
-    additionalPowerRB = -errorPitch + errorRoll - errorYaw;
-    additionalPowerLF = errorPitch - errorRoll - errorYaw;
-    additionalPowerRF = -errorPitch - errorRoll + errorYaw;
+    additionalPowerLB = errorPitch + errorRoll - errorYaw;
+    additionalPowerRB = -errorPitch + errorRoll + errorYaw;
+    additionalPowerLF = errorPitch - errorRoll  + errorYaw;
+    additionalPowerRF = -errorPitch - errorRoll - errorYaw;
 
     
     // additionalPowerLB = errorPitch + errorRoll;
